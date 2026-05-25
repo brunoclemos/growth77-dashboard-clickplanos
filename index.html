@@ -94,6 +94,26 @@
     .platform-tab.active.meta { background: var(--meta); color: #fff; }
     .platform-tab.active.google { background: var(--google); color: #000; }
     .platform-tab:not(.active):hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    /* Date pills */
+    .date-pill {
+      padding: 8px 16px; border-radius: 9999px; font-size: 13px; font-weight: 600;
+      color: var(--text-dim); background: var(--card-2); border: 1px solid var(--border);
+      cursor: pointer; transition: all .18s ease; user-select: none;
+    }
+    .date-pill:hover { color: var(--text); border-color: var(--border-hi); }
+    .date-pill.active {
+      color: var(--green); border-color: var(--green);
+      background: rgba(0,255,107,0.06);
+      box-shadow: 0 0 0 2px rgba(0,255,107,0.18);
+    }
+    .date-input {
+      background: var(--card-2); border: 1px solid var(--border);
+      border-radius: 9999px; padding: 8px 14px; font-size: 13px; font-weight: 500;
+      color: var(--text); color-scheme: dark; outline: none; transition: all .18s;
+      font-family: inherit;
+    }
+    .date-input:hover, .date-input:focus { border-color: var(--green); }
+    .date-input::-webkit-calendar-picker-indicator { filter: invert(0.7) sepia(1) saturate(5) hue-rotate(80deg); cursor: pointer; }
     .platform-dot { width: 8px; height: 8px; border-radius: 50%; }
     .platform-meta-dot { background: var(--meta); }
     .platform-google-dot { background: var(--google); }
@@ -104,6 +124,17 @@
     .ad-link:hover { color: var(--green); }
     .ad-link svg { opacity: 0; transform: translateX(-4px); transition: all .2s; }
     .ad-link:hover svg { opacity: 1; transform: translateX(0); }
+    .thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: var(--card-2); border: 1px solid var(--border); cursor: pointer; transition: all .2s; }
+    .thumb:hover { transform: scale(1.06); border-color: var(--green); }
+    .thumb-placeholder { width: 48px; height: 48px; border-radius: 8px; background: var(--card-2); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-dim-2); font-size: 18px; }
+    .progress-bar { height: 8px; border-radius: 4px; background: var(--card-2); overflow: hidden; position: relative; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green) 0%, var(--green-2) 100%); border-radius: 4px; transition: width .6s ease; }
+    .progress-fill.warn { background: linear-gradient(90deg, var(--amber) 0%, #FFA000 100%); }
+    .progress-fill.danger { background: linear-gradient(90deg, var(--red) 0%, #D03A3A 100%); }
+    /* Lightbox */
+    .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 100; cursor: zoom-out; }
+    .lightbox.active { display: flex; }
+    .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
   </style>
 </head>
 <body class="min-h-screen">
@@ -122,9 +153,9 @@
           </div>
         </div>
         <div class="hidden md:block w-px h-9 bg-[var(--border)]"></div>
-        <div class="hidden md:flex flex-col leading-tight">
-          <span class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Cliente</span>
-          <span class="text-base font-bold">ClickPlanos</span>
+        <div class="hidden md:flex items-center gap-3">
+          <span class="text-[10px] uppercase tracking-widest text-[var(--text-dim)] font-semibold">Cliente</span>
+          <img src="clickplanos-logo.png" alt="ClickPlanos" class="h-7 opacity-95" />
         </div>
       </div>
       <div class="flex items-center gap-3">
@@ -164,6 +195,33 @@
         </div>
         <div class="text-xs text-[var(--text-dim)]" id="platform-counter">—</div>
       </div>
+
+      <div class="flex items-center gap-2 flex-wrap" id="date-filter">
+        <button class="date-pill" data-date="today">Hoje</button>
+        <button class="date-pill" data-date="24h">Últimas 24h</button>
+        <button class="date-pill active" data-date="7d">7 dias</button>
+        <button class="date-pill" data-date="14d">14 dias</button>
+        <button class="date-pill" data-date="30d">30 dias</button>
+        <button class="date-pill" data-date="90d">90 dias</button>
+        <span class="text-xs text-[var(--text-dim)] ml-1">De</span>
+        <input type="date" id="date-start" class="date-input" />
+        <span class="text-xs text-[var(--text-dim)]">Até</span>
+        <input type="date" id="date-end" class="date-input" />
+      </div>
+    </section>
+
+    <!-- Budget Section (auto-shown when Budgets tab exists) -->
+    <section class="card p-6 hidden" id="budget-section" style="border-left: 3px solid var(--green);">
+      <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-[var(--green)] font-semibold">Controle de Budget</div>
+          <div class="text-lg font-bold mt-0.5">Total investido vs orçamento</div>
+        </div>
+        <div class="text-xs text-[var(--text-dim)]" id="budget-meta">—</div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5" id="budget-kpis"></div>
+      <div id="budget-progress-total" class="mb-5"></div>
+      <div id="budget-campaigns" class="space-y-3"></div>
     </section>
 
     <!-- KPIs primary row -->
@@ -326,9 +384,14 @@
     <section class="card p-6" id="creatives-section">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <div class="text-xs uppercase tracking-widest text-[var(--meta)] font-semibold">Top Criativos (Meta Ads)</div>
-          <div class="text-lg font-bold mt-0.5">Ranking de anúncios <span id="link-hint" class="hidden text-xs font-medium text-[var(--green)] ml-2">• clicáveis</span></div>
+          <div class="text-xs uppercase tracking-widest text-[var(--meta)] font-semibold">Todos os Criativos (Meta Ads)</div>
+          <div class="text-lg font-bold mt-0.5">
+            <span id="creatives-count">—</span> anúncios no ar
+            <span id="link-hint" class="hidden text-xs font-medium text-[var(--green)] ml-2">• clicáveis</span>
+            <span id="thumb-hint" class="hidden text-xs font-medium text-[var(--green)] ml-2">• com preview</span>
+          </div>
         </div>
+        <input type="text" id="creative-search" placeholder="Buscar criativo..." class="bg-[var(--card-2)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm w-full md:w-64" />
         <div class="flex gap-1 bg-[var(--card-2)] p-1 rounded-lg">
           <div class="tab-btn active" data-rank="ctr">por CTR</div>
           <div class="tab-btn" data-rank="impressions">por Impressões</div>
@@ -338,10 +401,11 @@
         </div>
       </div>
       <div class="overflow-x-auto scroll-x">
-        <table class="w-full min-w-[920px]">
+        <table class="w-full min-w-[1020px]">
           <thead>
             <tr>
               <th class="table-th w-10">#</th>
+              <th class="table-th w-16">Preview</th>
               <th class="table-th">Criativo</th>
               <th class="table-th text-right">Impressões</th>
               <th class="table-th text-right">CPM</th>
@@ -368,6 +432,11 @@
     </section>
 
   </main>
+
+  <!-- Lightbox for creative preview -->
+  <div class="lightbox" id="lightbox" onclick="this.classList.remove('active')">
+    <img id="lightbox-img" src="" alt="" />
+  </div>
 
   <!-- Footer -->
   <footer class="mt-12 border-t border-[var(--border)]">
@@ -408,10 +477,14 @@
     };
 
     let allData = [];           // normalized merged rows
+    let budgetsData = [];        // [{campaign, budget, isTotal}]
     let currentPlatform = 'all'; // 'all' | 'meta' | 'google'
     let currentMetric = 'impressions';
     let currentRank = 'ctr';
     let currentKwRank = 'impressions';
+    let currentDate = '7d';      // 'today' | '24h' | '7d' | '14d' | '30d' | '90d' | 'custom'
+    let customStart = null, customEnd = null;
+    let creativeSearch = '';
     let chartTime, chartCampaign, chartPlacement, chartMatchType;
 
     // ============ HELPERS ============
@@ -437,6 +510,33 @@
       const [y,m,d] = s.split('-');
       return `${d}/${m}`;
     };
+    const toISODate = (d) => {
+      const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    };
+    const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+    const daysAgo = (n) => { const d = today(); d.setDate(d.getDate() - n); return d; };
+
+    // Returns {start, end} ISO strings for the current preset, or null if 'custom' & inputs empty
+    function dateRange() {
+      const now = today();
+      switch (currentDate) {
+        case 'today':  return { start: toISODate(now),         end: toISODate(now) };
+        case '24h':    return { start: toISODate(daysAgo(1)),  end: toISODate(now) };
+        case '7d':     return { start: toISODate(daysAgo(6)),  end: toISODate(now) };
+        case '14d':    return { start: toISODate(daysAgo(13)), end: toISODate(now) };
+        case '30d':    return { start: toISODate(daysAgo(29)), end: toISODate(now) };
+        case '90d':    return { start: toISODate(daysAgo(89)), end: toISODate(now) };
+        case 'custom': return { start: customStart, end: customEnd };
+        default:       return { start: toISODate(daysAgo(6)),  end: toISODate(now) };
+      }
+    }
+    function syncDateInputs() {
+      const r = dateRange();
+      const s = document.getElementById('date-start'), e = document.getElementById('date-end');
+      if (s && r.start) s.value = r.start;
+      if (e && r.end)   e.value = r.end;
+    }
     const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const isValidUrl = (s) => {
       if (!s) return false;
@@ -444,18 +544,25 @@
       return /^https?:\/\//i.test(t) && t.length > 10;
     };
 
+    const isImageUrl = (s) => {
+      if (!isValidUrl(s)) return false;
+      return /\.(jpe?g|png|gif|webp|avif|bmp|svg)(\?|$|#)/i.test(s);
+    };
+
     // Find link column dynamically (any header matching link/url/criativo/creative)
     function findLinkKey(row) {
       const keys = Object.keys(row);
-      const re = /(link|url|criativo|creative)/i;
-      // Prefer columns whose header matches AND value looks like URL
-      for (const k of keys) {
-        if (re.test(k) && isValidUrl(row[k])) return k;
-      }
-      // Fallback: any column with a URL value
-      for (const k of keys) {
-        if (isValidUrl(row[k])) return k;
-      }
+      const re = /(^|[\s_-])(link|url|criativo|creative|anuncio|an[uú]ncio)([\s_-]|$)/i;
+      for (const k of keys) { if (re.test(k) && isValidUrl(row[k]) && !isImageUrl(row[k])) return k; }
+      for (const k of keys) { if (isValidUrl(row[k]) && !isImageUrl(row[k])) return k; }
+      return null;
+    }
+    // Find image/thumbnail column
+    function findImageKey(row) {
+      const keys = Object.keys(row);
+      const re = /(image|imagem|thumb|preview|previa|prévia|capa|foto|asset|midia|m[ií]dia)/i;
+      for (const k of keys) { if (re.test(k) && isValidUrl(row[k])) return k; }
+      for (const k of keys) { if (isImageUrl(row[k])) return k; }
       return null;
     }
 
@@ -469,7 +576,8 @@
           complete: (res) => {
             const rows = res.data || [];
             if (!rows.length) return resolve([]);
-            const linkKey = findLinkKey(rows.find(r => findLinkKey(r)) || rows[0]) || null;
+            const linkKey  = findLinkKey(rows.find(r => findLinkKey(r))   || rows[0]) || null;
+            const imageKey = findImageKey(rows.find(r => findImageKey(r)) || rows[0]) || null;
 
             const normalized = rows.map(r => {
               let n;
@@ -523,7 +631,8 @@
                 }
               }
               n.spend = (n.impressions / 1000) * n.cpm;
-              n.link = (linkKey && isValidUrl(r[linkKey])) ? String(r[linkKey]).trim() : null;
+              n.link  = (linkKey  && isValidUrl(r[linkKey]))  ? String(r[linkKey]).trim()  : null;
+              n.image = (imageKey && isImageUrl(r[imageKey])) ? String(r[imageKey]).trim() : null;
               return n;
             }).filter(r => r && r.date && r.ad);
             resolve(normalized);
@@ -531,6 +640,33 @@
           error: (err) => reject(err),
         });
       });
+    }
+
+    // Tries to load a Budgets tab. Accepts column names: Campaign / Campanha / Nome + Budget / Orcamento / Total / Valor
+    async function loadBudgets() {
+      const tabNames = ['Budgets','Budget','Orcamentos','Orçamentos','Orcamento','Orçamento'];
+      for (const tab of tabNames) {
+        try {
+          const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}&_=${Date.now()}`;
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const text = await res.text();
+          if (!text || text.length < 5 || /error/i.test(text.slice(0,200))) continue;
+          const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+          if (!parsed.data || !parsed.data.length) continue;
+          const sample = parsed.data[0];
+          const keys = Object.keys(sample);
+          const campKey = keys.find(k => /campaign|campanha|nome|name/i.test(k));
+          const budKey  = keys.find(k => /budget|or[cç]amento|valor|total/i.test(k));
+          if (!campKey || !budKey) continue;
+          const out = parsed.data
+            .map(r => ({ campaign: (r[campKey]||'').trim(), budget: num(r[budKey]) }))
+            .filter(r => r.campaign && r.budget > 0)
+            .map(r => ({ ...r, isTotal: /^(total|geral|total geral)$/i.test(r.campaign) }));
+          if (out.length) return out;
+        } catch (e) { /* try next tab name */ }
+      }
+      return [];
     }
 
     async function loadAll() {
@@ -565,8 +701,12 @@
 
     // ============ FILTERED VIEW ============
     function filteredRows() {
-      if (currentPlatform === 'all') return allData;
-      return allData.filter(r => r.source === currentPlatform);
+      let rows = allData;
+      if (currentPlatform !== 'all') rows = rows.filter(r => r.source === currentPlatform);
+      const { start, end } = dateRange();
+      if (start) rows = rows.filter(r => r.date >= start);
+      if (end)   rows = rows.filter(r => r.date <= end);
+      return rows;
     }
 
     // ============ RENDER ============
@@ -1009,33 +1149,50 @@
     function renderAdsTable() {
       // Meta-only — Google "Top Performers" estao na tabela de Keywords
       const rows = filteredRows().filter(r => r.source === 'meta');
-      // Group ads keyed by source+ad so the same ad-name across platforms stays separate
       const grouped = {};
       rows.forEach(r => {
         const k = `${r.source}::${r.ad}`;
-        if (!grouped[k]) grouped[k] = { source: r.source, name: r.ad, link: null, isFallback: !!r.adIsFallback, rows: [] };
+        if (!grouped[k]) grouped[k] = { source: r.source, name: r.ad, link: null, image: null, isFallback: !!r.adIsFallback, rows: [] };
         grouped[k].rows.push(r);
-        if (!grouped[k].link && r.link) grouped[k].link = r.link;
+        if (!grouped[k].link  && r.link)  grouped[k].link  = r.link;
+        if (!grouped[k].image && r.image) grouped[k].image = r.image;
       });
       let ads = Object.values(grouped).map(g => ({
-        source: g.source, name: g.name, link: g.link, isFallback: g.isFallback, ...aggregate(g.rows),
+        source: g.source, name: g.name, link: g.link, image: g.image, isFallback: g.isFallback, ...aggregate(g.rows),
       }));
+
+      if (creativeSearch) {
+        const q = creativeSearch.toLowerCase();
+        ads = ads.filter(a => (a.name || '').toLowerCase().includes(q));
+      }
       ads.sort((a,b) => (b[currentRank] || 0) - (a[currentRank] || 0));
 
-      // Show link hint if any
-      const hasAnyLink = ads.some(a => a.link);
+      const hasAnyLink  = ads.some(a => a.link);
+      const hasAnyImage = ads.some(a => a.image);
       document.getElementById('link-hint').classList.toggle('hidden', !hasAnyLink);
+      document.getElementById('thumb-hint').classList.toggle('hidden', !hasAnyImage);
+      const countEl = document.getElementById('creatives-count');
+      if (countEl) countEl.textContent = ads.length;
 
       const linkIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>`;
 
+      if (!ads.length) {
+        document.getElementById('ads-tbody').innerHTML = `<tr><td colspan="9" class="table-td text-center text-[var(--text-dim)] py-8">Nenhum criativo encontrado${creativeSearch ? ' para "'+escapeHtml(creativeSearch)+'"' : ''}</td></tr>`;
+        return;
+      }
+
       document.getElementById('ads-tbody').innerHTML = ads.map((r,i) => {
-        const fallbackTag = r.isFallback ? ` <span class="text-[10px] text-[var(--text-dim-2)] font-normal italic" title="Ad Name vazio na planilha — exibindo Ad Group">(grupo)</span>` : '';
+        const fallbackTag = r.isFallback ? ` <span class="text-[10px] text-[var(--text-dim-2)] font-normal italic">(grupo)</span>` : '';
         const nameHtml = r.link
           ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer" class="ad-link font-semibold" title="Abrir criativo">${escapeHtml(r.name || '—')} ${linkIcon}</a>${fallbackTag}`
           : `<span class="font-semibold">${escapeHtml(r.name || '—')}</span>${fallbackTag}`;
+        const thumbHtml = r.image
+          ? `<img src="${escapeHtml(r.image)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(r.image)}')" />`
+          : `<div class="thumb-placeholder" title="Sem preview">▦</div>`;
         return `
           <tr class="ad-row">
             <td class="table-td text-[var(--text-dim)] font-semibold">${i+1}</td>
+            <td class="table-td">${thumbHtml}</td>
             <td class="table-td">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="platform-badge ${r.source}">${r.source === 'meta' ? 'Meta' : 'Google'}</span>
@@ -1048,9 +1205,68 @@
             <td class="table-td text-right ${r.ctr > 1 ? 'text-[var(--green)] font-bold' : r.ctr > 0.5 ? 'font-semibold' : 'text-[var(--red)]'}">${fmtPct(r.ctr)}</td>
             <td class="table-td text-right">${fmt(r.leads)}</td>
             <td class="table-td text-right font-semibold">${fmtBRL(r.spend)}</td>
-          </tr>
-        `;
+          </tr>`;
       }).join('');
+    }
+
+    window.openLightbox = function(url) {
+      document.getElementById('lightbox-img').src = url;
+      document.getElementById('lightbox').classList.add('active');
+    };
+
+    function renderBudgets() {
+      const section = document.getElementById('budget-section');
+      if (!budgetsData.length) { section.classList.add('hidden'); return; }
+      section.classList.remove('hidden');
+
+      const totalSpend = sum(allData, 'spend');
+      const totalRow = budgetsData.find(b => b.isTotal);
+      const perCamp = budgetsData.filter(b => !b.isTotal);
+      const totalBudget = totalRow ? totalRow.budget : perCamp.reduce((a,b) => a + b.budget, 0);
+      const remaining = totalBudget - totalSpend;
+      const pctUsed = totalBudget > 0 ? (totalSpend / totalBudget * 100) : 0;
+
+      const stateClass = (pct) => pct >= 100 ? 'danger' : pct >= 80 ? 'warn' : '';
+      const stateColor = (pct) => pct >= 100 ? COLORS.red : pct >= 80 ? COLORS.amber : COLORS.green;
+
+      const kpi = (label, value, sub, color) => `
+        <div class="kpi-card p-5">
+          <div class="kpi-label">${label}</div>
+          <div class="kpi-value mt-2" style="color: ${color || 'var(--text)'};">${value}</div>
+          <div class="kpi-sub mt-1">${sub}</div>
+        </div>`;
+      document.getElementById('budget-kpis').innerHTML =
+        kpi('Budget Total', fmtBRL(totalBudget), 'orçamento') +
+        kpi('Investido', fmtBRL(totalSpend), `${fmtPct(pctUsed)} do budget`, stateColor(pctUsed)) +
+        kpi('Saldo Restante', fmtBRL(remaining), remaining < 0 ? 'estourou o budget' : 'disponível', remaining < 0 ? COLORS.red : COLORS.green) +
+        kpi('% Utilizado', fmtPct(pctUsed), pctUsed >= 100 ? 'acima do limite' : 'do total', stateColor(pctUsed));
+
+      document.getElementById('budget-progress-total').innerHTML = `
+        <div class="flex items-center justify-between mb-2 text-xs">
+          <span class="text-[var(--text-dim)] font-semibold uppercase tracking-wider">Progresso Geral</span>
+          <span class="font-bold">${fmtBRL(totalSpend)} / ${fmtBRL(totalBudget)}</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill ${stateClass(pctUsed)}" style="width: ${Math.min(pctUsed, 100)}%"></div></div>`;
+
+      if (perCamp.length) {
+        document.getElementById('budget-campaigns').innerHTML = `<div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold mb-2 mt-3">Por Campanha</div>` + perCamp.map(b => {
+          const spent = sum(allData.filter(r => r.campaign === b.campaign), 'spend');
+          const pct = b.budget > 0 ? (spent / b.budget * 100) : 0;
+          const niceName = b.campaign.replace('G77_LEAD_','').replace(/_AUTO_CWB$/,'').replace(/_CWB$/,'').replace(/_/g,' ');
+          return `
+            <div>
+              <div class="flex items-center justify-between mb-1.5 text-xs gap-2">
+                <span class="font-semibold truncate">${escapeHtml(niceName)}</span>
+                <span class="text-[var(--text-dim)]"><span class="font-bold text-[var(--text)]">${fmtBRL(spent)}</span> / ${fmtBRL(b.budget)} <span style="color:${stateColor(pct)};font-weight:700;margin-left:6px;">${fmtPct(pct)}</span></span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill ${stateClass(pct)}" style="width: ${Math.min(pct, 100)}%"></div></div>
+            </div>`;
+        }).join('');
+      } else {
+        document.getElementById('budget-campaigns').innerHTML = '';
+      }
+
+      document.getElementById('budget-meta').innerHTML = `Dados da aba <span class="font-semibold text-[var(--text)]">Budgets</span>`;
     }
 
     function renderInsights() {
@@ -1174,6 +1390,7 @@
     // ============ MAIN ============
     function renderAll() {
       applyPlatformVisibility();
+      renderBudgets();
       renderKPIs();
       renderPlatformCompare();
       renderFunnel();
@@ -1191,8 +1408,11 @@
     async function load() {
       try {
         document.getElementById('last-update-text').textContent = 'Carregando dados...';
-        allData = await loadAll();
+        const [data, budgets] = await Promise.all([loadAll(), loadBudgets()]);
+        allData = data;
+        budgetsData = budgets;
         if (!allData.length) throw new Error('Nenhuma linha retornada das planilhas');
+        syncDateInputs();
         renderAll();
       } catch (e) {
         console.error(e);
@@ -1237,6 +1457,31 @@
         currentKwRank = btn.dataset.kwRank;
         renderKeywordsTable();
       });
+    });
+    document.querySelectorAll('[data-date]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-date]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentDate = btn.dataset.date;
+        syncDateInputs();
+        renderAll();
+      });
+    });
+    ['date-start','date-end'].forEach(id => {
+      document.getElementById(id).addEventListener('change', (e) => {
+        currentDate = 'custom';
+        document.querySelectorAll('[data-date]').forEach(b => b.classList.remove('active'));
+        customStart = document.getElementById('date-start').value || null;
+        customEnd   = document.getElementById('date-end').value   || null;
+        renderAll();
+      });
+    });
+    document.getElementById('creative-search').addEventListener('input', (e) => {
+      creativeSearch = e.target.value.trim();
+      renderAdsTable();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('active');
     });
     document.getElementById('refresh-btn').addEventListener('click', load);
 

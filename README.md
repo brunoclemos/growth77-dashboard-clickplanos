@@ -17,6 +17,19 @@ Os dados vêm direto da planilha do cliente. Qualquer alteração na planilha ap
 ## Fontes de dados
 - **Aba `Facebook`** (gid=609054384) — Meta Ads (todas as campanhas)
 - **Aba `Google`** (gid=0) — Google Ads, **apenas SEARCH** (filtro `/SEARCH/i` aplicado em `Campaign Name`)
+- **Aba `Budgets`** (opcional) — orçamentos por campanha. Estrutura mínima:
+  ```
+  Campaign | Budget
+  Total    | 10000
+  G77_LEAD_FRIO_AUTO_CWB | 3000
+  ```
+  Linha com Campaign=`Total` define o budget master. Outras linhas viram progress bars por campanha.
+
+## Filtro de data
+Chips no topo: **Hoje · Últimas 24h · 7 dias · 14 dias · 30 dias · 90 dias** + inputs **De/Até** pra range custom. Todo filtro reseta charts, KPIs, funil e tabelas.
+
+## Preview de criativo
+Auto-detecta coluna de imagem na planilha (qualquer header com `image`/`imagem`/`thumb`/`preview`/`capa`/`foto`/`asset` ou valor com extensão `.jpg/.png/.gif/.webp`). Quando presente, thumbnails 48x48 aparecem ao lado do nome do criativo + click abre lightbox em fullscreen.
 
 Investimento (R$) é calculado como `(Impressões / 1000) × CPM` para ambas as plataformas, já que o sheet não tem coluna de Spend explícita.
 
