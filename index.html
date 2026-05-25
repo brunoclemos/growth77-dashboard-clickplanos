@@ -90,7 +90,9 @@
     /* Platform filter */
     .platform-tabs { display: inline-flex; padding: 4px; background: var(--card-2); border-radius: 12px; gap: 4px; }
     .platform-tab { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text-dim); cursor: pointer; transition: all .2s; user-select: none; display: inline-flex; align-items: center; gap: 8px; }
+    .criativos-hidden { display: none !important; }
     .platform-tab.active.all { background: var(--green); color: #000; }
+    .platform-tab.active.criativos { background: #A855F7; color: #fff; }
     .platform-tab.active.meta { background: var(--meta); color: #fff; }
     .platform-tab.active.google { background: var(--google); color: #000; }
     .platform-tab:not(.active):hover { color: var(--text); background: rgba(255,255,255,0.04); }
@@ -265,7 +267,8 @@
       </div>
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div class="platform-tabs" id="platform-filter">
-          <div class="platform-tab active all" data-platform="all">Todas as plataformas</div>
+          <div class="platform-tab active all" data-platform="all">Geral</div>
+          <div class="platform-tab criativos" data-platform="criativos">Criativos</div>
           <div class="platform-tab meta" data-platform="meta"><span class="platform-dot platform-meta-dot"></span> Meta Ads</div>
           <div class="platform-tab google" data-platform="google"><span class="platform-dot platform-google-dot"></span> Google Ads</div>
         </div>
@@ -287,7 +290,7 @@
     </section>
 
     <!-- Budget Section (auto-shown when Budgets tab exists) -->
-    <section class="card p-6 hidden" id="budget-section" style="border-left: 3px solid var(--green);">
+    <section class="card p-6 hidden" id="budget-section" data-hide-in-criativos="1" style="border-left: 3px solid var(--green);">
       <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <div class="text-xs uppercase tracking-widest text-[var(--green)] font-semibold">Controle de Budget</div>
@@ -301,10 +304,10 @@
     </section>
 
     <!-- KPIs primary row -->
-    <section class="grid grid-cols-2 md:grid-cols-4 gap-4" id="kpi-grid"></section>
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4" id="kpi-grid" data-hide-in-criativos="1"></section>
 
     <!-- Platform Comparison -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-5" id="platform-compare-section">
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-5" id="platform-compare-section" data-hide-in-criativos="1">
       <div class="card p-6" style="border-left: 3px solid var(--meta);">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
@@ -328,7 +331,7 @@
     </section>
 
     <!-- Funnel + Time Series -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5" data-hide-in-criativos="1">
       <div class="card p-6 lg:col-span-1">
         <div class="flex items-center justify-between mb-5">
           <div>
@@ -359,7 +362,7 @@
     </section>
 
     <!-- Campaign + Placement/MatchType breakdown -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-5" data-hide-in-criativos="1">
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
           <div>
@@ -394,7 +397,7 @@
     </section>
 
     <!-- Adset performance -->
-    <section class="card p-6">
+    <section class="card p-6" data-hide-in-criativos="1">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
           <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Performance por Conjunto de Anúncios</div>
@@ -548,7 +551,7 @@
     </section>
 
     <!-- Insights -->
-    <section class="card p-6">
+    <section class="card p-6" data-hide-in-criativos="1">
       <div class="flex items-center justify-between mb-4">
         <div>
           <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Insights Automáticos</div>
@@ -951,7 +954,10 @@
     // ============ FILTERED VIEW ============
     function filteredRows() {
       let rows = allData;
-      if (currentPlatform !== 'all') rows = rows.filter(r => r.source === currentPlatform);
+      // 'criativos' nao filtra por plataforma (a galeria tem toggle interno)
+      if (currentPlatform === 'meta' || currentPlatform === 'google') {
+        rows = rows.filter(r => r.source === currentPlatform);
+      }
       const { start, end } = dateRange();
       if (start) rows = rows.filter(r => r.date >= start);
       if (end)   rows = rows.filter(r => r.date <= end);
@@ -1345,17 +1351,24 @@
     }
 
     function applyPlatformVisibility() {
-      const showMeta = currentPlatform === 'all' || currentPlatform === 'meta';
-      const showGoogle = currentPlatform === 'all' || currentPlatform === 'google';
+      const isCriativos = currentPlatform === 'criativos';
+      const showMeta   = currentPlatform === 'all' || currentPlatform === 'meta'   || isCriativos;
+      const showGoogle = currentPlatform === 'all' || currentPlatform === 'google' || isCriativos;
       const hasGoogleKeywords = allData.some(r => r.source === 'google' && r.keyword);
       const hasGoogleDisplay  = allData.some(r => r.source === 'google' && /DISPLAY/i.test(r.campaign || ''));
       const hasMetaCreatives  = allData.some(r => r.source === 'meta');
 
+      // Esconde grandes seções (KPIs, charts, budget, insights, etc) no modo Criativos
+      document.querySelectorAll('[data-hide-in-criativos]').forEach(el => {
+        el.classList.toggle('criativos-hidden', isCriativos);
+      });
+
       document.getElementById('creatives-section').classList.toggle('hidden', !(showMeta && hasMetaCreatives));
       document.getElementById('display-creatives-section').classList.toggle('hidden', !(showGoogle && hasGoogleDisplay));
-      document.getElementById('keywords-section').classList.toggle('hidden',  !(showGoogle && hasGoogleKeywords));
-      document.getElementById('placement-card').classList.toggle('hidden', !showMeta);
-      document.getElementById('matchtype-card').classList.toggle('hidden', !(showGoogle && hasGoogleKeywords));
+      // Keywords escondida no modo Criativos (cliente quer ver visualmente, e keywords e textual)
+      document.getElementById('keywords-section').classList.toggle('hidden',  isCriativos || !(showGoogle && hasGoogleKeywords));
+      document.getElementById('placement-card').classList.toggle('hidden', !showMeta || isCriativos);
+      document.getElementById('matchtype-card').classList.toggle('hidden', isCriativos || !(showGoogle && hasGoogleKeywords));
     }
 
     function renderAdsetTable() {
