@@ -130,6 +130,19 @@
     .thumb-wrap { position: relative; display: inline-block; }
     .variant-count { position: absolute; top: -4px; right: -4px; background: var(--green); color: #000; font-size: 9px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 9999px; padding: 0 4px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg); pointer-events: none; }
     .thumb-loading { width: 48px; height: 48px; border-radius: 8px; background: linear-gradient(90deg, #161616 0%, #222 50%, #161616 100%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border: 1px solid var(--border); }
+    /* Creatives Gallery */
+    .creative-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: all .2s ease; cursor: pointer; display: flex; flex-direction: column; }
+    .creative-card:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 255, 107, 0.08); }
+    .creative-card-thumb { aspect-ratio: 1 / 1; background: var(--card-2); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+    .creative-card-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease; }
+    .creative-card:hover .creative-card-thumb img { transform: scale(1.04); }
+    .creative-card-thumb-placeholder { color: var(--text-dim-2); font-size: 42px; }
+    .creative-card-body { padding: 12px 14px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .creative-card-name { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.3; word-break: break-word; }
+    .creative-card-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border); margin-top: auto; }
+    .creative-card-stat { display: flex; flex-direction: column; gap: 1px; }
+    .creative-card-stat .label { font-size: 9px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim-2); font-weight: 600; }
+    .creative-card-stat .value { font-size: 11px; font-weight: 700; color: var(--text); }
     .progress-bar { height: 8px; border-radius: 4px; background: var(--card-2); overflow: hidden; position: relative; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green) 0%, var(--green-2) 100%); border-radius: 4px; transition: width .6s ease; }
     .progress-fill.warn { background: linear-gradient(90deg, var(--amber) 0%, #FFA000 100%); }
@@ -443,6 +456,21 @@
       </div>
     </section>
 
+    <!-- Criativos Veiculados (gallery) -->
+    <section class="card p-6" id="veiculados-section">
+      <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-[var(--green)] font-semibold">Criativos Veiculados</div>
+          <div class="text-lg font-bold mt-0.5"><span id="veiculados-count">—</span> anúncios <span class="text-xs font-medium text-[var(--text-dim)] ml-1">no período selecionado</span></div>
+        </div>
+        <div class="platform-tabs" id="veiculados-tabs">
+          <div class="platform-tab active meta" data-veiculados="meta"><span class="platform-dot platform-meta-dot"></span> Meta Ads</div>
+          <div class="platform-tab google" data-veiculados="google"><span class="platform-dot platform-google-dot"></span> Google Display</div>
+        </div>
+      </div>
+      <div id="veiculados-gallery" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </section>
+
     <!-- Top creatives (Meta) -->
     <section class="card p-6" id="creatives-section">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -748,8 +776,8 @@
     }
 
     // ============ MICROLINK og:image fetcher (com cache localStorage 7d) ============
-    const OG_CACHE_KEY = 'og_image_cache_v1';
-    const OG_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+    const OG_CACHE_KEY = 'og_image_cache_v2';
+    const OG_CACHE_TTL = 4 * 60 * 60 * 1000; // 4h — URLs scontent.cdninstagram.com expiram rapido
     function _readOgCache() { try { return JSON.parse(localStorage.getItem(OG_CACHE_KEY) || '{}'); } catch { return {}; } }
     function _writeOgCache(c) { try { localStorage.setItem(OG_CACHE_KEY, JSON.stringify(c)); } catch {} }
     function getCachedOg(url) {
@@ -794,13 +822,32 @@
         const url = slot.dataset.ogUrl;
         const img = await fetchOgImage(url);
         if (img) {
-          slot.outerHTML = `<div class="thumb-wrap"><img src="${escapeHtml(img)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(img)}')" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot; title=&quot;Preview indisponível&quot;>&#9646;</div>'" /></div>`;
+          slot.outerHTML = `<div class="thumb-wrap"><img src="${escapeHtml(img)}" alt="" class="thumb" data-og-link="${escapeHtml(url)}" onclick="openLightbox(this.src)" onerror="retryOgImage(this)" /></div>`;
         } else {
           slot.outerHTML = `<div class="thumb-placeholder" title="Preview indisponível (Instagram bloqueou ou link sem og:image)">▦</div>`;
         }
       });
       await Promise.allSettled(tasks);
     }
+    // Retry on broken image: limpa cache + refetch Microlink
+    window.retryOgImage = function(imgEl) {
+      if (imgEl.dataset.retried) {
+        imgEl.outerHTML = '<div class="thumb-placeholder" title="Preview indisponível">▦</div>';
+        return;
+      }
+      const link = imgEl.dataset.ogLink;
+      if (!link) { imgEl.outerHTML = '<div class="thumb-placeholder">▦</div>'; return; }
+      imgEl.dataset.retried = '1';
+      const c = _readOgCache(); delete c[link]; _writeOgCache(c);
+      fetchOgImage(link).then(newImg => {
+        if (newImg && newImg !== imgEl.src) {
+          imgEl.src = newImg;
+          imgEl.onclick = () => openLightbox(newImg);
+        } else {
+          imgEl.outerHTML = '<div class="thumb-placeholder" title="Preview indisponível">▦</div>';
+        }
+      });
+    };
 
     // Load creatives manifest (maps Ad Name -> filename in /creatives/)
     async function loadCreativesManifest() {
@@ -1552,6 +1599,109 @@
       document.getElementById('budget-meta').innerHTML = `Dados da aba <span class="font-semibold text-[var(--text)]">Budgets</span>`;
     }
 
+    // ============ CRIATIVOS VEICULADOS (gallery view) ============
+    let currentVeiculados = 'meta';
+    function renderVeiculados() {
+      const baseRows = filteredRows();
+      const rows = currentVeiculados === 'meta'
+        ? baseRows.filter(r => r.source === 'meta')
+        : baseRows.filter(r => r.source === 'google' && /DISPLAY/i.test(r.campaign || ''));
+
+      const grouped = {};
+      rows.forEach(r => {
+        const k = r.ad;
+        if (!grouped[k]) grouped[k] = { name: r.ad, link: null, image: null, rows: [] };
+        grouped[k].rows.push(r);
+        if (!grouped[k].link  && r.link)  grouped[k].link  = r.link;
+        if (!grouped[k].image && r.image) grouped[k].image = r.image;
+      });
+      const ads = Object.values(grouped).map(g => {
+        const agg = aggregate(g.rows);
+        const localImg = currentVeiculados === 'google' ? resolveAdImage(g.name, g.image) : g.image;
+        return {
+          name: g.name, link: g.link, image: localImg,
+          variants: currentVeiculados === 'google' ? getAdVariants(g.name) : null,
+          ...agg,
+        };
+      }).sort((a,b) => b.impressions - a.impressions);
+
+      document.getElementById('veiculados-count').textContent = ads.length;
+
+      if (!ads.length) {
+        document.getElementById('veiculados-gallery').innerHTML = `
+          <div class="col-span-full text-center text-[var(--text-dim)] py-10 text-sm">
+            Nenhum criativo ${currentVeiculados === 'meta' ? 'Meta' : 'Google Display'} no período selecionado.
+          </div>`;
+        return;
+      }
+
+      document.getElementById('veiculados-gallery').innerHTML = ads.map(r => {
+        // Thumbnail
+        let thumb;
+        if (r.image) {
+          thumb = `<img src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name)}" onerror="this.outerHTML='<div class=&quot;creative-card-thumb-placeholder&quot;>&#9646;</div>'" />`;
+        } else if (r.link && currentVeiculados === 'meta') {
+          const cached = getCachedOg(r.link);
+          if (cached) {
+            thumb = `<img src="${escapeHtml(cached)}" alt="${escapeHtml(r.name)}" data-og-link="${escapeHtml(r.link)}" onerror="retryOgImageCard(this)" />`;
+          } else if (cached === null) {
+            thumb = `<div class="creative-card-thumb-placeholder">▦</div>`;
+          } else {
+            thumb = `<div class="thumb-loading" style="width:100%;height:100%;border-radius:0;" data-og-url-card="${escapeHtml(r.link)}"></div>`;
+          }
+        } else {
+          thumb = `<div class="creative-card-thumb-placeholder">▦</div>`;
+        }
+        const variantsAttr = r.variants ? `data-variants='${escapeHtml(JSON.stringify(r.variants))}'` : '';
+        const onclickLB = r.image
+          ? `onclick="openLightbox('${escapeHtml(r.image)}', this.querySelector('[data-variants]')?.dataset.variants)"`
+          : '';
+        return `
+          <div class="creative-card" ${variantsAttr} ${onclickLB}>
+            <div class="creative-card-thumb">${thumb}</div>
+            <div class="creative-card-body">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="platform-badge ${currentVeiculados === 'meta' ? 'meta' : 'google'}">${currentVeiculados === 'meta' ? 'Meta' : 'Display'}</span>
+                ${r.variants ? `<span class="text-[9px] font-bold text-[var(--green)] uppercase tracking-wider">${r.variants.length} variantes</span>` : ''}
+              </div>
+              <div class="creative-card-name">${escapeHtml(r.name || '—')}</div>
+              <div class="creative-card-stats">
+                <div class="creative-card-stat"><div class="label">Impr.</div><div class="value">${fmtCompact(r.impressions)}</div></div>
+                <div class="creative-card-stat"><div class="label">CTR</div><div class="value ${r.ctr > 1 ? 'text-[var(--green)]' : r.ctr > 0.5 ? '' : 'text-[var(--red)]'}">${fmtPct(r.ctr)}</div></div>
+                <div class="creative-card-stat"><div class="label">Invest.</div><div class="value">${fmtBRL(r.spend)}</div></div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Async hydrate previews via Microlink pros cards Meta sem cache
+      hydrateVeiculadosCards();
+    }
+
+    async function hydrateVeiculadosCards() {
+      const slots = document.querySelectorAll('[data-og-url-card]');
+      await Promise.allSettled([...slots].map(async (slot) => {
+        const url = slot.dataset.ogUrlCard;
+        const img = await fetchOgImage(url);
+        if (img) {
+          slot.outerHTML = `<img src="${escapeHtml(img)}" alt="" data-og-link="${escapeHtml(url)}" onerror="retryOgImageCard(this)" />`;
+        } else {
+          slot.outerHTML = `<div class="creative-card-thumb-placeholder">▦</div>`;
+        }
+      }));
+    }
+    window.retryOgImageCard = function(imgEl) {
+      if (imgEl.dataset.retried) { imgEl.outerHTML = '<div class="creative-card-thumb-placeholder">▦</div>'; return; }
+      const link = imgEl.dataset.ogLink;
+      if (!link) { imgEl.outerHTML = '<div class="creative-card-thumb-placeholder">▦</div>'; return; }
+      imgEl.dataset.retried = '1';
+      const c = _readOgCache(); delete c[link]; _writeOgCache(c);
+      fetchOgImage(link).then(newImg => {
+        if (newImg) imgEl.src = newImg;
+        else imgEl.outerHTML = '<div class="creative-card-thumb-placeholder">▦</div>';
+      });
+    };
+
     function renderInsights() {
       const rows = filteredRows();
       const agg = aggregate(rows);
@@ -1682,6 +1832,7 @@
       renderPlacementChart();
       renderMatchTypeChart();
       renderAdsetTable();
+      renderVeiculados();
       renderAdsTable();
       renderDisplayAdsTable();
       renderKeywordsTable();
@@ -1749,6 +1900,14 @@
         btn.classList.add('active');
         currentDisplayRank = btn.dataset.displayRank;
         renderDisplayAdsTable();
+      });
+    });
+    document.querySelectorAll('[data-veiculados]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-veiculados]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentVeiculados = btn.dataset.veiculados;
+        renderVeiculados();
       });
     });
     document.querySelectorAll('[data-date]').forEach(btn => {
