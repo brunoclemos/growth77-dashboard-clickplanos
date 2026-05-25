@@ -129,6 +129,7 @@
     .thumb-placeholder { width: 48px; height: 48px; border-radius: 8px; background: var(--card-2); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-dim-2); font-size: 18px; }
     .thumb-wrap { position: relative; display: inline-block; }
     .variant-count { position: absolute; top: -4px; right: -4px; background: var(--green); color: #000; font-size: 9px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 9999px; padding: 0 4px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg); pointer-events: none; }
+    .thumb-loading { width: 48px; height: 48px; border-radius: 8px; background: linear-gradient(90deg, #161616 0%, #222 50%, #161616 100%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border: 1px solid var(--border); }
     .progress-bar { height: 8px; border-radius: 4px; background: var(--card-2); overflow: hidden; position: relative; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green) 0%, var(--green-2) 100%); border-radius: 4px; transition: width .6s ease; }
     .progress-fill.warn { background: linear-gradient(90deg, var(--amber) 0%, #FFA000 100%); }
@@ -462,10 +463,11 @@
         </div>
       </div>
       <div class="overflow-x-auto scroll-x">
-        <table class="w-full min-w-[920px]">
+        <table class="w-full min-w-[980px]">
           <thead>
             <tr>
               <th class="table-th w-10">#</th>
+              <th class="table-th w-16">Preview</th>
               <th class="table-th">Criativo</th>
               <th class="table-th text-right">Impressões</th>
               <th class="table-th text-right">CPM</th>
@@ -743,6 +745,61 @@
           error: (err) => reject(err),
         });
       });
+    }
+
+    // ============ MICROLINK og:image fetcher (com cache localStorage 7d) ============
+    const OG_CACHE_KEY = 'og_image_cache_v1';
+    const OG_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+    function _readOgCache() { try { return JSON.parse(localStorage.getItem(OG_CACHE_KEY) || '{}'); } catch { return {}; } }
+    function _writeOgCache(c) { try { localStorage.setItem(OG_CACHE_KEY, JSON.stringify(c)); } catch {} }
+    function getCachedOg(url) {
+      const c = _readOgCache();
+      const entry = c[url];
+      if (entry && (Date.now() - entry.ts) < OG_CACHE_TTL) return entry.image; // can be null
+      return undefined;
+    }
+    function setCachedOg(url, image) {
+      const c = _readOgCache();
+      c[url] = { image, ts: Date.now() };
+      _writeOgCache(c);
+    }
+    const _ogInflight = {};
+    async function fetchOgImage(url) {
+      if (!url) return null;
+      const cached = getCachedOg(url);
+      if (cached !== undefined) return cached;
+      if (_ogInflight[url]) return _ogInflight[url];
+      _ogInflight[url] = (async () => {
+        try {
+          const api = 'https://api.microlink.io/?url=' + encodeURIComponent(url);
+          const r = await fetch(api);
+          if (!r.ok) throw new Error('HTTP '+r.status);
+          const j = await r.json();
+          const image = (j && j.data && j.data.image && j.data.image.url) || (j && j.data && j.data.logo && j.data.logo.url) || null;
+          setCachedOg(url, image);
+          return image;
+        } catch (e) {
+          setCachedOg(url, null);
+          return null;
+        } finally {
+          delete _ogInflight[url];
+        }
+      })();
+      return _ogInflight[url];
+    }
+    // Apos render da tabela Meta, busca og:image em paralelo e troca os thumbnails
+    async function hydrateMetaPreviews() {
+      const slots = document.querySelectorAll('[data-og-url]');
+      const tasks = [...slots].map(async (slot) => {
+        const url = slot.dataset.ogUrl;
+        const img = await fetchOgImage(url);
+        if (img) {
+          slot.outerHTML = `<div class="thumb-wrap"><img src="${escapeHtml(img)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(img)}')" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot; title=&quot;Preview indisponível&quot;>&#9646;</div>'" /></div>`;
+        } else {
+          slot.outerHTML = `<div class="thumb-placeholder" title="Preview indisponível (Instagram bloqueou ou link sem og:image)">▦</div>`;
+        }
+      });
+      await Promise.allSettled(tasks);
     }
 
     // Load creatives manifest (maps Ad Name -> filename in /creatives/)
@@ -1298,7 +1355,7 @@
         if (!grouped[k].image && r.image) grouped[k].image = r.image;
       });
       let ads = Object.values(grouped).map(g => ({
-        source: g.source, name: g.name, link: g.link,
+        source: g.source, name: g.name, link: g.link, image: g.image,
         isFallback: g.isFallback, ...aggregate(g.rows),
       }));
 
@@ -1316,7 +1373,7 @@
       const linkIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>`;
 
       if (!ads.length) {
-        document.getElementById('ads-tbody').innerHTML = `<tr><td colspan="8" class="table-td text-center text-[var(--text-dim)] py-8">Nenhum criativo encontrado${creativeSearch ? ' para "'+escapeHtml(creativeSearch)+'"' : ''}</td></tr>`;
+        document.getElementById('ads-tbody').innerHTML = `<tr><td colspan="9" class="table-td text-center text-[var(--text-dim)] py-8">Nenhum criativo encontrado${creativeSearch ? ' para "'+escapeHtml(creativeSearch)+'"' : ''}</td></tr>`;
         return;
       }
 
@@ -1324,9 +1381,26 @@
         const nameHtml = r.link
           ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer" class="ad-link font-semibold" title="Abrir criativo">${escapeHtml(r.name || '—')} ${linkIcon}</a>`
           : `<span class="font-semibold">${escapeHtml(r.name || '—')}</span>`;
+        // Preview: usa imagem da planilha se houver; senao tenta og:image do link via Microlink (async)
+        let thumbHtml;
+        if (r.image) {
+          thumbHtml = `<div class="thumb-wrap"><img src="${escapeHtml(r.image)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(r.image)}')" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot;>&#9646;</div>'" /></div>`;
+        } else if (r.link) {
+          const cached = getCachedOg(r.link);
+          if (cached) {
+            thumbHtml = `<div class="thumb-wrap"><img src="${escapeHtml(cached)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(cached)}')" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot;>&#9646;</div>'" /></div>`;
+          } else if (cached === null) {
+            thumbHtml = `<div class="thumb-placeholder" title="Preview indisponível">▦</div>`;
+          } else {
+            thumbHtml = `<div class="thumb-loading" data-og-url="${escapeHtml(r.link)}" title="Carregando preview..."></div>`;
+          }
+        } else {
+          thumbHtml = `<div class="thumb-placeholder" title="Adicione coluna Link na planilha pra ver preview">▦</div>`;
+        }
         return `
           <tr class="ad-row">
             <td class="table-td text-[var(--text-dim)] font-semibold">${i+1}</td>
+            <td class="table-td">${thumbHtml}</td>
             <td class="table-td">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="platform-badge meta">Meta</span>
@@ -1341,6 +1415,9 @@
             <td class="table-td text-right font-semibold">${fmtBRL(r.spend)}</td>
           </tr>`;
       }).join('');
+
+      // Async hydrate dos previews via Microlink
+      hydrateMetaPreviews();
     }
 
     let currentDisplayRank = 'impressions';
