@@ -556,8 +556,9 @@
     // ============ CONFIG ============
     const SHEET_ID = "1R_KgIsImfkSsBEc5EfbSPeLQ7Mm892WohHk7MA9nJ1Q";
     const SHEETS = [
-      { source: 'meta',   gid: '609054384', label: 'Meta Ads',   color: '#4D8BFF' },
-      { source: 'google', gid: '0',          label: 'Google Ads', color: '#FFB800' },
+      { source: 'meta',   gid: '609054384',  label: 'Meta Ads',       color: '#4D8BFF' },
+      { source: 'google', gid: '0',           label: 'Google Search',  color: '#FFB800' },
+      { source: 'google', gid: '2037007510',  label: 'Google Display', color: '#FFB800' },
     ];
     // Filtro: pro Google, aceitar SEARCH + DISPLAY (ignora PMAX, VIDEO, etc se houver)
     const GOOGLE_CAMPAIGN_FILTER = /SEARCH|DISPLAY/i;
