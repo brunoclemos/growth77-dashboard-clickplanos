@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard ClickPlanos | Growth77</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230A0A0A'/><text x='50' y='62' font-family='Inter,sans-serif' font-size='42' font-weight='900' text-anchor='middle' fill='%2300FF6B'>77</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0A0A0A;
+      --card: #121212;
+      --card-2: #171717;
+      --border: #1F1F1F;
+      --border-hi: #2A2A2A;
+      --text: #FFFFFF;
+      --text-dim: #9CA3AF;
+      --text-dim-2: #6B7280;
+      --green: #00FF6B;
+      --green-soft: rgba(0, 255, 107, 0.12);
+      --green-2: #00C955;
+      --red: #FF4D4D;
+      --amber: #FFB800;
+      --blue: #4D8BFF;
+    }
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .card:hover { border-color: var(--border-hi); }
+    .kpi-card {
+      background: linear-gradient(180deg, #131313 0%, #0E0E0E 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      transition: all .25s ease;
+    }
+    .kpi-card:hover {
+      border-color: var(--green);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 255, 107, 0.08);
+    }
+    .kpi-label { color: var(--text-dim); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+    .kpi-value { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+    .kpi-sub { font-size: 12px; color: var(--text-dim-2); }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600;
+      background: var(--green-soft); color: var(--green);
+    }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(0,255,107,.6); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0,255,107,.6); } 70% { box-shadow: 0 0 0 8px rgba(0,255,107,0); } 100% { box-shadow: 0 0 0 0 rgba(0,255,107,0); } }
+    .skeleton { background: linear-gradient(90deg, #161616 0%, #1F1F1F 50%, #161616 100%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .tab-btn { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text-dim); cursor: pointer; transition: all .2s; }
+    .tab-btn.active { background: var(--green); color: #000; }
+    .tab-btn:not(.active):hover { background: var(--card-2); color: var(--text); }
+    .scroll-x::-webkit-scrollbar { height: 6px; }
+    .scroll-x::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 3px; }
+    .ad-row:hover { background: #181818; }
+    .gradient-text { background: linear-gradient(90deg, #FFFFFF 0%, #00FF6B 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .funnel-bar {
+      height: 38px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; border-radius: 8px; font-weight: 700; font-size: 14px;
+      transition: all .3s;
+    }
+    .badge-warm { background: rgba(255, 184, 0, .12); color: var(--amber); }
+    .badge-cold { background: rgba(77, 139, 255, .12); color: var(--blue); }
+    .badge-hot { background: rgba(255, 77, 77, .12); color: var(--red); }
+    .table-th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); font-weight: 600; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    .table-td { padding: 12px; font-size: 13px; border-bottom: 1px solid var(--border); }
+    .nav-link { color: var(--text-dim); font-size: 13px; font-weight: 500; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px;
+      border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all .2s; border: 1px solid var(--border);
+      background: var(--card); color: var(--text);
+    }
+    .btn:hover { border-color: var(--green); color: var(--green); }
+    .btn-primary { background: var(--green); color: #000; border-color: var(--green); }
+    .btn-primary:hover { background: var(--green-2); border-color: var(--green-2); color: #000; }
+    .glow { box-shadow: 0 0 32px rgba(0, 255, 107, 0.15); }
+    .divider { height: 1px; background: linear-gradient(90deg, transparent 0%, var(--border) 50%, transparent 100%); }
+    /* Logo wordmark replicado em CSS pra performance */
+    .wordmark { font-weight: 900; letter-spacing: -.04em; font-size: 26px; }
+    .wordmark .green { color: var(--green); }
+    .wordmark-sub { font-size: 9.5px; letter-spacing: .42em; color: var(--text-dim); margin-top: -2px; font-weight: 500; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Top Bar -->
+  <header class="border-b border-[var(--border)] sticky top-0 z-40 backdrop-blur" style="background: rgba(10,10,10,0.85);">
+    <div class="max-w-[1480px] mx-auto px-6 py-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-lg bg-black border border-[var(--border)] flex items-center justify-center overflow-hidden glow">
+            <img src="growth77-logo.jpg" alt="Growth77" class="w-full h-full object-cover" />
+          </div>
+          <div class="flex flex-col leading-none">
+            <div class="wordmark">GROWTH<span class="green">77</span></div>
+            <div class="wordmark-sub">ACQUISITION AGENCY</div>
+          </div>
+        </div>
+        <div class="hidden md:block w-px h-9 bg-[var(--border)]"></div>
+        <div class="hidden md:flex flex-col leading-tight">
+          <span class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Cliente</span>
+          <span class="text-base font-bold">ClickPlanos</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="last-update" class="hidden md:flex items-center gap-2 text-xs text-[var(--text-dim)]">
+          <div class="pulse"></div>
+          <span id="last-update-text">Carregando...</span>
+        </div>
+        <button id="refresh-btn" class="btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg>
+          <span>Atualizar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1480px] mx-auto px-6 py-8 space-y-8">
+
+    <!-- Hero / Intro -->
+    <section class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <div>
+        <div class="chip mb-3"><div class="pulse"></div>DADOS EM TEMPO REAL — META ADS</div>
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Dashboard de Aquisição <span class="gradient-text">ClickPlanos</span></h1>
+        <p class="text-[var(--text-dim)] mt-2 text-sm max-w-2xl">Performance de campanhas pagas no Meta Ads — funil completo de impressões a leads qualificados (CP01).</p>
+      </div>
+      <div class="flex flex-wrap gap-2 text-xs">
+        <span class="px-3 py-1.5 rounded-lg bg-[var(--card-2)] border border-[var(--border)] text-[var(--text-dim)]"><span class="text-[var(--text)] font-semibold" id="date-range">—</span> • período</span>
+        <span class="px-3 py-1.5 rounded-lg bg-[var(--card-2)] border border-[var(--border)] text-[var(--text-dim)]"><span class="text-[var(--text)] font-semibold" id="campaigns-count">—</span> campanhas</span>
+        <span class="px-3 py-1.5 rounded-lg bg-[var(--card-2)] border border-[var(--border)] text-[var(--text-dim)]"><span class="text-[var(--text)] font-semibold" id="ads-count">—</span> criativos</span>
+      </div>
+    </section>
+
+    <!-- KPIs primary row -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4" id="kpi-grid">
+      <!-- filled by JS -->
+    </section>
+
+    <!-- Funnel + Time Series -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="card p-6 lg:col-span-1">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Funil de Aquisição</div>
+            <div class="text-lg font-bold mt-0.5">Impressão → Lead</div>
+          </div>
+        </div>
+        <div id="funnel" class="space-y-3"></div>
+        <div class="divider my-4"></div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <div class="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-semibold">Impr → Click</div>
+            <div class="text-base font-bold mt-0.5" id="conv-impr-click">—</div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-semibold">Click → LPV</div>
+            <div class="text-base font-bold mt-0.5" id="conv-click-lpv">—</div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-semibold">LPV → Lead</div>
+            <div class="text-base font-bold mt-0.5" id="conv-lpv-lead">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6 lg:col-span-2">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Performance Temporal</div>
+            <div class="text-lg font-bold mt-0.5">Evolução por dia</div>
+          </div>
+          <div class="flex gap-1 bg-[var(--card-2)] p-1 rounded-lg">
+            <div class="tab-btn active" data-metric="impressions">Impressões</div>
+            <div class="tab-btn" data-metric="clicks">Cliques</div>
+            <div class="tab-btn" data-metric="lpv">LPV</div>
+            <div class="tab-btn" data-metric="leads">Leads</div>
+          </div>
+        </div>
+        <div class="h-[280px] relative"><canvas id="chart-time"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Campaign + Placement breakdown -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Por Campanha</div>
+            <div class="text-lg font-bold mt-0.5">Distribuição de investimento</div>
+          </div>
+        </div>
+        <div class="h-[300px] relative"><canvas id="chart-campaign"></canvas></div>
+        <div id="campaign-legend" class="mt-4 space-y-2"></div>
+      </div>
+
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Por Posicionamento</div>
+            <div class="text-lg font-bold mt-0.5">FEED vs STORIES</div>
+          </div>
+        </div>
+        <div class="h-[300px] relative"><canvas id="chart-placement"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Adset performance -->
+    <section class="card p-6">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Performance por Conjunto de Anúncios</div>
+          <div class="text-lg font-bold mt-0.5">Audiências e segmentações</div>
+        </div>
+      </div>
+      <div class="overflow-x-auto scroll-x">
+        <table class="w-full min-w-[820px]">
+          <thead>
+            <tr>
+              <th class="table-th">Conjunto</th>
+              <th class="table-th text-right">Impressões</th>
+              <th class="table-th text-right">CPM</th>
+              <th class="table-th text-right">Cliques</th>
+              <th class="table-th text-right">CTR</th>
+              <th class="table-th text-right">LPV</th>
+              <th class="table-th text-right">Leads</th>
+              <th class="table-th text-right">Invest.</th>
+            </tr>
+          </thead>
+          <tbody id="adset-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Top creatives -->
+    <section class="card p-6">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Top Criativos</div>
+          <div class="text-lg font-bold mt-0.5">Ranking de anúncios</div>
+        </div>
+        <div class="flex gap-1 bg-[var(--card-2)] p-1 rounded-lg">
+          <div class="tab-btn active" data-rank="ctr">por CTR</div>
+          <div class="tab-btn" data-rank="impressions">por Impressões</div>
+          <div class="tab-btn" data-rank="clicks">por Cliques</div>
+        </div>
+      </div>
+      <div class="overflow-x-auto scroll-x">
+        <table class="w-full min-w-[820px]">
+          <thead>
+            <tr>
+              <th class="table-th w-10">#</th>
+              <th class="table-th">Criativo</th>
+              <th class="table-th text-right">Impressões</th>
+              <th class="table-th text-right">CPM</th>
+              <th class="table-th text-right">Cliques</th>
+              <th class="table-th text-right">CTR</th>
+              <th class="table-th text-right">LPV</th>
+              <th class="table-th text-right">Leads</th>
+            </tr>
+          </thead>
+          <tbody id="ads-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Insights -->
+    <section class="card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Insights Automáticos</div>
+          <div class="text-lg font-bold mt-0.5">Sinais e recomendações</div>
+        </div>
+      </div>
+      <div id="insights" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-12 border-t border-[var(--border)]">
+    <div class="max-w-[1480px] mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-7 h-7 rounded bg-black border border-[var(--border)] overflow-hidden">
+          <img src="growth77-logo.jpg" alt="Growth77" class="w-full h-full object-cover" />
+        </div>
+        <span class="text-sm text-[var(--text-dim)]">Feito por <span class="text-[var(--text)] font-bold">GROWTH<span style="color: var(--green);">77</span></span> — Acquisition Agency</span>
+      </div>
+      <span class="text-xs text-[var(--text-dim-2)]">Dashboard atualizada automaticamente via Google Sheets.</span>
+    </div>
+  </footer>
+
+  <script>
+    // ============ CONFIG ============
+    const SHEET_ID = "1R_KgIsImfkSsBEc5EfbSPeLQ7Mm892WohHk7MA9nJ1Q";
+    const GID = "609054384";
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+
+    Chart.defaults.color = '#9CA3AF';
+    Chart.defaults.borderColor = '#1F1F1F';
+    Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+    Chart.defaults.font.size = 11;
+
+    const COLORS = {
+      green: '#00FF6B',
+      green2: '#00C955',
+      blue: '#4D8BFF',
+      amber: '#FFB800',
+      red: '#FF4D4D',
+      purple: '#A855F7',
+      pink: '#EC4899',
+      cyan: '#06B6D4',
+      grey: '#6B7280',
+    };
+
+    let rawData = [];
+    let currentMetric = 'impressions';
+    let currentRank = 'ctr';
+    let chartTime, chartCampaign, chartPlacement;
+
+    // ============ HELPERS ============
+    const num = (v) => {
+      if (v === null || v === undefined || v === '') return 0;
+      if (typeof v === 'number') return v;
+      const s = String(v).trim().replace(/\./g, '').replace(',', '.');
+      const n = parseFloat(s);
+      return isFinite(n) ? n : 0;
+    };
+    const fmt = (n, d=0) => {
+      if (!isFinite(n)) return '—';
+      return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+    };
+    const fmtBRL = (n) => 'R$ ' + fmt(n, 2);
+    const fmtPct = (n) => fmt(n, 2) + '%';
+    const fmtCompact = (n) => {
+      if (n >= 1e6) return fmt(n/1e6, 1) + 'M';
+      if (n >= 1e3) return fmt(n/1e3, 1) + 'k';
+      return fmt(n, 0);
+    };
+    const fmtDate = (s) => {
+      if (!s) return '';
+      const [y,m,d] = s.split('-');
+      return `${d}/${m}`;
+    };
+
+    // ============ FETCH ============
+    async function loadData() {
+      const cacheBust = '&_=' + Date.now();
+      const url = CSV_URL + cacheBust;
+      return new Promise((resolve, reject) => {
+        Papa.parse(url, {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+          complete: (res) => {
+            const rows = res.data.map(r => ({
+              date: r['Date'],
+              campaign: r['Campaign Name'],
+              adset: r['Adset Name'],
+              ad: r['Ad Name'],
+              impressions: num(r['Impressions']),
+              cpm: num(r['CPM (Cost per 1000 Impressions)']),
+              clicks: num(r['Action Link Clicks']),
+              lpv: num(r['Action Landing Page View']),
+              ctr: num(r['CTR (Clickthrough Rate)']),
+              leads: num(r['Custom Action Lead-GTM (CA - Click Planos CP01)']),
+              cpl: num(r['Custom Cost Per Action Lead-GTM (CA - Click Planos CP01)']),
+            })).filter(r => r.date && r.ad);
+            // spend = (impressions/1000) * cpm
+            rows.forEach(r => { r.spend = (r.impressions/1000) * r.cpm; });
+            resolve(rows);
+          },
+          error: (err) => reject(err),
+        });
+      });
+    }
+
+    // ============ AGGREGATIONS ============
+    const sum = (arr, k) => arr.reduce((a, b) => a + (b[k] || 0), 0);
+    const groupBy = (arr, key) => arr.reduce((acc, r) => {
+      const k = r[key];
+      if (!acc[k]) acc[k] = [];
+      acc[k].push(r);
+      return acc;
+    }, {});
+    const aggregate = (rows) => ({
+      impressions: sum(rows, 'impressions'),
+      clicks: sum(rows, 'clicks'),
+      lpv: sum(rows, 'lpv'),
+      leads: sum(rows, 'leads'),
+      spend: sum(rows, 'spend'),
+      ctr: sum(rows, 'impressions') > 0 ? (sum(rows, 'clicks') / sum(rows, 'impressions') * 100) : 0,
+      cpm: sum(rows, 'impressions') > 0 ? (sum(rows, 'spend') / sum(rows, 'impressions') * 1000) : 0,
+      cpl: sum(rows, 'leads') > 0 ? (sum(rows, 'spend') / sum(rows, 'leads')) : 0,
+      cpc: sum(rows, 'clicks') > 0 ? (sum(rows, 'spend') / sum(rows, 'clicks')) : 0,
+    });
+
+    // ============ RENDER ============
+    function renderKPIs(agg) {
+      const grid = document.getElementById('kpi-grid');
+      const items = [
+        { label: 'Impressões', value: fmtCompact(agg.impressions), sub: fmt(agg.impressions) + ' totais', icon: '👁' },
+        { label: 'Investimento', value: fmtBRL(agg.spend), sub: 'CPM médio ' + fmtBRL(agg.cpm), icon: '💰' },
+        { label: 'Cliques no Link', value: fmt(agg.clicks), sub: 'CPC ' + fmtBRL(agg.cpc), icon: '👆' },
+        { label: 'CTR Médio', value: fmtPct(agg.ctr), sub: 'engajamento dos criativos', icon: '⚡' },
+        { label: 'Landing Page Views', value: fmt(agg.lpv), sub: agg.clicks > 0 ? fmtPct(agg.lpv/agg.clicks*100) + ' dos cliques' : '—', icon: '🌐' },
+        { label: 'Leads (CP01)', value: fmt(agg.leads), sub: 'click_planos rastreado', icon: '🎯' },
+        { label: 'Custo por Lead', value: agg.leads > 0 ? fmtBRL(agg.cpl) : '—', sub: 'baseado em invest. / leads', icon: '💎' },
+        { label: 'Taxa Geral de Conv.', value: agg.impressions > 0 ? fmtPct(agg.leads/agg.impressions*100) : '0%', sub: 'lead/impressão', icon: '📈' },
+      ];
+      grid.innerHTML = items.map(it => `
+        <div class="kpi-card p-5">
+          <div class="flex items-start justify-between">
+            <div class="kpi-label">${it.label}</div>
+            <div class="text-base opacity-50">${it.icon}</div>
+          </div>
+          <div class="kpi-value mt-2">${it.value}</div>
+          <div class="kpi-sub mt-1">${it.sub}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderFunnel(agg) {
+      const stages = [
+        { label: 'Impressões', value: agg.impressions, color: COLORS.blue, pct: 100 },
+        { label: 'Cliques no Link', value: agg.clicks, color: COLORS.green, pct: agg.impressions > 0 ? (agg.clicks/agg.impressions*100) : 0 },
+        { label: 'Landing Page Views', value: agg.lpv, color: COLORS.amber, pct: agg.impressions > 0 ? (agg.lpv/agg.impressions*100) : 0 },
+        { label: 'Leads (CP01)', value: agg.leads, color: COLORS.red, pct: agg.impressions > 0 ? (agg.leads/agg.impressions*100) : 0 },
+      ];
+      const max = Math.max(...stages.map(s => s.pct), 1);
+      document.getElementById('funnel').innerHTML = stages.map((s,i) => {
+        const w = Math.max(s.pct / max * 100, 6);
+        return `
+          <div>
+            <div class="flex items-center justify-between mb-1.5 text-xs">
+              <span class="text-[var(--text-dim)] font-medium">${s.label}</span>
+              <span class="font-bold">${fmt(s.value)} <span class="text-[var(--text-dim)] font-medium ml-1">${fmtPct(s.pct)}</span></span>
+            </div>
+            <div class="funnel-bar" style="background: ${s.color}1F; width: ${w}%; min-width: 80px;">
+              <span style="color: ${s.color};">${fmtCompact(s.value)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('conv-impr-click').innerHTML = agg.impressions>0 ? fmtPct(agg.clicks/agg.impressions*100) : '—';
+      document.getElementById('conv-click-lpv').innerHTML = agg.clicks>0 ? fmtPct(agg.lpv/agg.clicks*100) : '—';
+      document.getElementById('conv-lpv-lead').innerHTML = agg.lpv>0 ? fmtPct(agg.leads/agg.lpv*100) : '—';
+    }
+
+    function renderTimeChart() {
+      const grouped = groupBy(rawData, 'date');
+      const dates = Object.keys(grouped).sort();
+      const metricMap = { impressions: 'impressions', clicks: 'clicks', lpv: 'lpv', leads: 'leads' };
+      const metricLabels = { impressions: 'Impressões', clicks: 'Cliques', lpv: 'LPV', leads: 'Leads' };
+      const data = dates.map(d => sum(grouped[d], metricMap[currentMetric]));
+
+      const ctx = document.getElementById('chart-time').getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+      gradient.addColorStop(0, 'rgba(0, 255, 107, 0.35)');
+      gradient.addColorStop(1, 'rgba(0, 255, 107, 0)');
+
+      if (chartTime) chartTime.destroy();
+      chartTime = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dates.map(fmtDate),
+          datasets: [{
+            label: metricLabels[currentMetric],
+            data,
+            borderColor: COLORS.green,
+            backgroundColor: gradient,
+            tension: 0.35,
+            fill: true,
+            borderWidth: 2.5,
+            pointBackgroundColor: COLORS.green,
+            pointBorderColor: '#0A0A0A',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0A0A0A', borderColor: '#1F1F1F', borderWidth: 1,
+              titleColor: '#FFFFFF', bodyColor: '#9CA3AF', padding: 12,
+              callbacks: { label: (c) => '  ' + metricLabels[currentMetric] + ': ' + fmt(c.parsed.y) }
+            }
+          },
+          scales: {
+            x: { grid: { color: '#161616', drawTicks: false }, ticks: { padding: 8 } },
+            y: { grid: { color: '#161616', drawTicks: false }, ticks: { padding: 8, callback: (v) => fmtCompact(v) }, beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    function renderCampaignChart() {
+      const grouped = groupBy(rawData, 'campaign');
+      const entries = Object.entries(grouped).map(([k, v]) => ({
+        name: k,
+        ...aggregate(v),
+      })).sort((a, b) => b.spend - a.spend);
+
+      const niceName = (n) => n.replace('G77_LEAD_', '').replace(/_AUTO_CWB$/, '').replace(/_/g, ' ');
+      const colors = [COLORS.green, COLORS.blue, COLORS.amber, COLORS.purple, COLORS.red, COLORS.cyan];
+
+      const ctx = document.getElementById('chart-campaign').getContext('2d');
+      if (chartCampaign) chartCampaign.destroy();
+      chartCampaign = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: entries.map(e => niceName(e.name)),
+          datasets: [{
+            data: entries.map(e => e.spend),
+            backgroundColor: entries.map((_, i) => colors[i % colors.length]),
+            borderColor: '#0A0A0A',
+            borderWidth: 3,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '68%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0A0A0A', borderColor: '#1F1F1F', borderWidth: 1,
+              titleColor: '#FFFFFF', bodyColor: '#9CA3AF', padding: 12,
+              callbacks: { label: (c) => '  ' + c.label + ': ' + fmtBRL(c.parsed) }
+            }
+          }
+        }
+      });
+
+      const total = entries.reduce((a,b)=>a+b.spend,0) || 1;
+      document.getElementById('campaign-legend').innerHTML = entries.map((e,i) => {
+        const c = colors[i % colors.length];
+        const badge = e.name.includes('FRIO') ? 'badge-cold' : e.name.includes('QUENTE') ? 'badge-hot' : 'badge-warm';
+        const label = e.name.includes('FRIO') ? 'FRIO' : e.name.includes('QUENTE') ? 'QUENTE' : 'WARM';
+        return `
+          <div class="flex items-center justify-between text-xs gap-3">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background: ${c};"></span>
+              <span class="font-semibold truncate">${niceName(e.name)}</span>
+              <span class="chip ${badge}" style="background: transparent; padding: 1px 8px; border: 1px solid currentColor;">${label}</span>
+            </div>
+            <div class="flex items-center gap-3 text-[var(--text-dim)] flex-shrink-0">
+              <span class="font-semibold text-[var(--text)]">${fmtBRL(e.spend)}</span>
+              <span>${fmtPct(e.spend/total*100)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderPlacementChart() {
+      const buckets = { FEED: [], STORIES: [] };
+      rawData.forEach(r => {
+        if (r.adset && r.adset.includes('STORIES')) buckets.STORIES.push(r);
+        else if (r.adset && r.adset.includes('FEED')) buckets.FEED.push(r);
+      });
+      const labels = ['FEED', 'STORIES'];
+      const datasets = [
+        { label: 'Impressões', data: labels.map(l => sum(buckets[l], 'impressions')), color: COLORS.green },
+        { label: 'Cliques', data: labels.map(l => sum(buckets[l], 'clicks')), color: COLORS.blue },
+        { label: 'LPV', data: labels.map(l => sum(buckets[l], 'lpv')), color: COLORS.amber },
+      ];
+
+      const ctx = document.getElementById('chart-placement').getContext('2d');
+      if (chartPlacement) chartPlacement.destroy();
+      chartPlacement = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: datasets.map(d => ({
+            label: d.label, data: d.data,
+            backgroundColor: d.color + '30', borderColor: d.color, borderWidth: 1.5,
+            borderRadius: 6, borderSkipped: false,
+          }))
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14 } },
+            tooltip: { backgroundColor: '#0A0A0A', borderColor: '#1F1F1F', borderWidth: 1, padding: 12 }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { padding: 6 } },
+            y: { grid: { color: '#161616' }, ticks: { padding: 8, callback: (v) => fmtCompact(v) }, beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    function renderAdsetTable() {
+      const grouped = groupBy(rawData, 'adset');
+      const rows = Object.entries(grouped).map(([k,v]) => ({
+        name: k,
+        ...aggregate(v),
+      })).sort((a,b) => b.impressions - a.impressions);
+
+      document.getElementById('adset-tbody').innerHTML = rows.map(r => {
+        const isStories = r.name.includes('STORIES');
+        return `
+          <tr class="ad-row">
+            <td class="table-td">
+              <div class="font-semibold">${r.name}</div>
+              <div class="text-[10px] uppercase tracking-wider mt-1">
+                <span class="chip" style="background: ${isStories ? 'rgba(168,85,247,.12)' : 'rgba(77,139,255,.12)'}; color: ${isStories ? COLORS.purple : COLORS.blue}; padding: 2px 8px;">${isStories ? 'STORIES' : 'FEED'}</span>
+              </div>
+            </td>
+            <td class="table-td text-right font-semibold">${fmt(r.impressions)}</td>
+            <td class="table-td text-right">${fmtBRL(r.cpm)}</td>
+            <td class="table-td text-right">${fmt(r.clicks)}</td>
+            <td class="table-td text-right ${r.ctr > 1 ? 'text-[var(--green)]' : r.ctr > 0.5 ? '' : 'text-[var(--red)]'} font-semibold">${fmtPct(r.ctr)}</td>
+            <td class="table-td text-right">${fmt(r.lpv)}</td>
+            <td class="table-td text-right">${fmt(r.leads)}</td>
+            <td class="table-td text-right font-semibold">${fmtBRL(r.spend)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderAdsTable() {
+      const grouped = groupBy(rawData, 'ad');
+      let rows = Object.entries(grouped).map(([k,v]) => ({ name: k, ...aggregate(v) }));
+      const sortKey = currentRank;
+      rows.sort((a,b) => b[sortKey] - a[sortKey]);
+
+      document.getElementById('ads-tbody').innerHTML = rows.map((r,i) => `
+        <tr class="ad-row">
+          <td class="table-td text-[var(--text-dim)] font-semibold">${i+1}</td>
+          <td class="table-td">
+            <div class="font-semibold">${r.name}</div>
+          </td>
+          <td class="table-td text-right">${fmt(r.impressions)}</td>
+          <td class="table-td text-right">${fmtBRL(r.cpm)}</td>
+          <td class="table-td text-right">${fmt(r.clicks)}</td>
+          <td class="table-td text-right ${r.ctr > 1 ? 'text-[var(--green)] font-bold' : r.ctr > 0.5 ? 'font-semibold' : 'text-[var(--red)]'}">${fmtPct(r.ctr)}</td>
+          <td class="table-td text-right">${fmt(r.lpv)}</td>
+          <td class="table-td text-right">${fmt(r.leads)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderInsights(agg) {
+      const ins = [];
+
+      // Best CTR ad
+      const grouped = groupBy(rawData, 'ad');
+      const ads = Object.entries(grouped).map(([k,v]) => ({ name: k, ...aggregate(v) }))
+        .filter(a => a.impressions >= 100);
+      const bestCtr = [...ads].sort((a,b) => b.ctr - a.ctr)[0];
+      const worstCtr = [...ads].sort((a,b) => a.ctr - b.ctr)[0];
+      if (bestCtr) ins.push({
+        type: 'positive',
+        title: 'Melhor criativo (CTR)',
+        body: `<strong>${bestCtr.name}</strong> com <strong>${fmtPct(bestCtr.ctr)}</strong> de CTR em ${fmt(bestCtr.impressions)} impressões. <span class="text-[var(--green)]">Sinalize para escalar.</span>`
+      });
+      if (worstCtr && worstCtr.ctr < 0.5) ins.push({
+        type: 'negative',
+        title: 'Criativo com baixo CTR',
+        body: `<strong>${worstCtr.name}</strong> com apenas <strong>${fmtPct(worstCtr.ctr)}</strong> de CTR. <span class="text-[var(--red)]">Considere pausar ou refazer.</span>`
+      });
+
+      // Best campaign
+      const camps = Object.entries(groupBy(rawData, 'campaign')).map(([k,v]) => ({ name: k, ...aggregate(v) }));
+      const bestCamp = [...camps].sort((a,b) => b.ctr - a.ctr)[0];
+      if (bestCamp) {
+        const nice = bestCamp.name.replace('G77_LEAD_', '').replace(/_AUTO_CWB$/, '').replace(/_/g, ' ');
+        ins.push({
+          type: 'info',
+          title: 'Campanha mais engajada',
+          body: `<strong>${nice}</strong> entrega o melhor CTR médio do período (<strong>${fmtPct(bestCamp.ctr)}</strong>).`
+        });
+      }
+
+      // Leads warning
+      if (agg.leads === 0) ins.push({
+        type: 'warning',
+        title: 'Sem leads no período',
+        body: `Nenhum lead CP01 rastreado nos últimos dias. <span class="text-[var(--amber)]">Verifique a tag GTM ou o tracking da landing.</span>`
+      });
+
+      // FEED vs STORIES
+      const feedRows = rawData.filter(r => r.adset && r.adset.includes('FEED'));
+      const storyRows = rawData.filter(r => r.adset && r.adset.includes('STORIES'));
+      const feedAgg = aggregate(feedRows), storyAgg = aggregate(storyRows);
+      if (feedAgg.impressions && storyAgg.impressions) {
+        const winner = feedAgg.ctr > storyAgg.ctr ? 'FEED' : 'STORIES';
+        const wCtr = Math.max(feedAgg.ctr, storyAgg.ctr);
+        const lCtr = Math.min(feedAgg.ctr, storyAgg.ctr);
+        ins.push({
+          type: 'info',
+          title: 'Posicionamento vencedor',
+          body: `<strong>${winner}</strong> performa melhor (CTR ${fmtPct(wCtr)} vs ${fmtPct(lCtr)}). Considere realocar verba.`
+        });
+      }
+
+      const colorMap = {
+        positive: { bg: 'rgba(0,255,107,.08)', bd: 'rgba(0,255,107,.3)', tx: COLORS.green, icon: '↗' },
+        negative: { bg: 'rgba(255,77,77,.08)', bd: 'rgba(255,77,77,.3)', tx: COLORS.red, icon: '↘' },
+        warning: { bg: 'rgba(255,184,0,.08)', bd: 'rgba(255,184,0,.3)', tx: COLORS.amber, icon: '!' },
+        info: { bg: 'rgba(77,139,255,.08)', bd: 'rgba(77,139,255,.3)', tx: COLORS.blue, icon: 'i' },
+      };
+      document.getElementById('insights').innerHTML = ins.slice(0,6).map(i => {
+        const c = colorMap[i.type];
+        return `
+          <div class="rounded-xl p-4 border" style="background: ${c.bg}; border-color: ${c.bd};">
+            <div class="flex items-start gap-3">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm" style="background: ${c.tx}; color: #000;">${c.icon}</div>
+              <div>
+                <div class="font-bold text-sm">${i.title}</div>
+                <div class="text-xs text-[var(--text-dim)] mt-1 leading-relaxed">${i.body}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderMeta() {
+      const dates = [...new Set(rawData.map(r => r.date))].sort();
+      const camps = [...new Set(rawData.map(r => r.campaign))];
+      const ads = [...new Set(rawData.map(r => r.ad))];
+      const range = dates.length > 1 ? `${fmtDate(dates[0])} – ${fmtDate(dates[dates.length-1])}` : fmtDate(dates[0] || '');
+      document.getElementById('date-range').textContent = range;
+      document.getElementById('campaigns-count').textContent = camps.length;
+      document.getElementById('ads-count').textContent = ads.length;
+      const now = new Date();
+      const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('last-update-text').textContent = 'Atualizado às ' + time;
+    }
+
+    // ============ MAIN ============
+    async function render() {
+      try {
+        document.getElementById('last-update-text').textContent = 'Carregando dados...';
+        rawData = await loadData();
+        if (!rawData.length) throw new Error('Planilha vazia');
+        const agg = aggregate(rawData);
+        renderKPIs(agg);
+        renderFunnel(agg);
+        renderTimeChart();
+        renderCampaignChart();
+        renderPlacementChart();
+        renderAdsetTable();
+        renderAdsTable();
+        renderInsights(agg);
+        renderMeta();
+      } catch (e) {
+        console.error(e);
+        document.getElementById('last-update-text').textContent = 'Erro ao carregar';
+        document.getElementById('kpi-grid').innerHTML = `
+          <div class="md:col-span-4 card p-8 text-center">
+            <div class="text-[var(--red)] font-bold text-lg mb-2">Não foi possível carregar a planilha</div>
+            <div class="text-sm text-[var(--text-dim)]">Verifique se a planilha está com acesso público ("qualquer pessoa com o link"). Detalhe: ${e.message}</div>
+          </div>`;
+      }
+    }
+
+    // Tabs
+    document.querySelectorAll('[data-metric]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-metric]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMetric = btn.dataset.metric;
+        renderTimeChart();
+      });
+    });
+    document.querySelectorAll('[data-rank]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-rank]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRank = btn.dataset.rank;
+        renderAdsTable();
+      });
+    });
+    document.getElementById('refresh-btn').addEventListener('click', render);
+
+    render();
+  </script>
+</body>
+</html>
