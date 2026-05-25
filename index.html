@@ -450,7 +450,6 @@
           <div class="text-lg font-bold mt-0.5">
             <span id="creatives-count">—</span> anúncios no ar
             <span id="link-hint" class="hidden text-xs font-medium text-[var(--green)] ml-2">• clicáveis</span>
-            <span id="thumb-hint" class="hidden text-xs font-medium text-[var(--green)] ml-2">• com preview</span>
           </div>
         </div>
         <input type="text" id="creative-search" placeholder="Buscar criativo..." class="bg-[var(--card-2)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm w-full md:w-64" />
@@ -463,11 +462,10 @@
         </div>
       </div>
       <div class="overflow-x-auto scroll-x">
-        <table class="w-full min-w-[1020px]">
+        <table class="w-full min-w-[920px]">
           <thead>
             <tr>
               <th class="table-th w-10">#</th>
-              <th class="table-th w-16">Preview</th>
               <th class="table-th">Criativo</th>
               <th class="table-th text-right">Impressões</th>
               <th class="table-th text-right">CPM</th>
@@ -478,6 +476,43 @@
             </tr>
           </thead>
           <tbody id="ads-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Top creatives (Google Display) -->
+    <section class="card p-6 hidden" id="display-creatives-section">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-[var(--google)] font-semibold">Top Criativos (Google Display)</div>
+          <div class="text-lg font-bold mt-0.5">
+            <span id="display-count">—</span> anúncios <span class="text-xs font-medium text-[var(--green)] ml-2">• com preview e variantes</span>
+          </div>
+        </div>
+        <div class="flex gap-1 bg-[var(--card-2)] p-1 rounded-lg">
+          <div class="tab-btn active" data-display-rank="impressions">por Impressões</div>
+          <div class="tab-btn" data-display-rank="clicks">por Cliques</div>
+          <div class="tab-btn" data-display-rank="ctr">por CTR</div>
+          <div class="tab-btn" data-display-rank="leads">por Conv.</div>
+          <div class="tab-btn" data-display-rank="spend">por Invest.</div>
+        </div>
+      </div>
+      <div class="overflow-x-auto scroll-x">
+        <table class="w-full min-w-[980px]">
+          <thead>
+            <tr>
+              <th class="table-th w-10">#</th>
+              <th class="table-th w-16">Preview</th>
+              <th class="table-th">Criativo</th>
+              <th class="table-th">Ad Group</th>
+              <th class="table-th text-right">Impressões</th>
+              <th class="table-th text-right">Cliques</th>
+              <th class="table-th text-right">CTR</th>
+              <th class="table-th text-right">Conv.</th>
+              <th class="table-th text-right">Invest.</th>
+            </tr>
+          </thead>
+          <tbody id="display-tbody"></tbody>
         </table>
       </div>
     </section>
@@ -1205,22 +1240,17 @@
     }
 
     function applyPlatformVisibility() {
-      // Hide creatives section when google-only (Meta ads are the "creatives")
-      // Show keywords section when google data is in scope
       const showMeta = currentPlatform === 'all' || currentPlatform === 'meta';
       const showGoogle = currentPlatform === 'all' || currentPlatform === 'google';
       const hasGoogleKeywords = allData.some(r => r.source === 'google' && r.keyword);
-      const hasMetaCreatives = allData.some(r => r.source === 'meta');
+      const hasGoogleDisplay  = allData.some(r => r.source === 'google' && /DISPLAY/i.test(r.campaign || ''));
+      const hasMetaCreatives  = allData.some(r => r.source === 'meta');
 
-      const creatives = document.getElementById('creatives-section');
-      const keywords = document.getElementById('keywords-section');
-      const placement = document.getElementById('placement-card');
-      const matchtype = document.getElementById('matchtype-card');
-
-      creatives.classList.toggle('hidden', !(showMeta && hasMetaCreatives));
-      keywords.classList.toggle('hidden',  !(showGoogle && hasGoogleKeywords));
-      placement.classList.toggle('hidden', !showMeta);
-      matchtype.classList.toggle('hidden', !(showGoogle && hasGoogleKeywords));
+      document.getElementById('creatives-section').classList.toggle('hidden', !(showMeta && hasMetaCreatives));
+      document.getElementById('display-creatives-section').classList.toggle('hidden', !(showGoogle && hasGoogleDisplay));
+      document.getElementById('keywords-section').classList.toggle('hidden',  !(showGoogle && hasGoogleKeywords));
+      document.getElementById('placement-card').classList.toggle('hidden', !showMeta);
+      document.getElementById('matchtype-card').classList.toggle('hidden', !(showGoogle && hasGoogleKeywords));
     }
 
     function renderAdsetTable() {
@@ -1268,8 +1298,6 @@
       });
       let ads = Object.values(grouped).map(g => ({
         source: g.source, name: g.name, link: g.link,
-        image: resolveAdImage(g.name, g.image),
-        variants: getAdVariants(g.name),
         isFallback: g.isFallback, ...aggregate(g.rows),
       }));
 
@@ -1279,25 +1307,68 @@
       }
       ads.sort((a,b) => (b[currentRank] || 0) - (a[currentRank] || 0));
 
-      const hasAnyLink  = ads.some(a => a.link);
-      const hasAnyImage = ads.some(a => a.image);
+      const hasAnyLink = ads.some(a => a.link);
       document.getElementById('link-hint').classList.toggle('hidden', !hasAnyLink);
-      document.getElementById('thumb-hint').classList.toggle('hidden', !hasAnyImage);
       const countEl = document.getElementById('creatives-count');
       if (countEl) countEl.textContent = ads.length;
 
       const linkIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>`;
 
       if (!ads.length) {
-        document.getElementById('ads-tbody').innerHTML = `<tr><td colspan="9" class="table-td text-center text-[var(--text-dim)] py-8">Nenhum criativo encontrado${creativeSearch ? ' para "'+escapeHtml(creativeSearch)+'"' : ''}</td></tr>`;
+        document.getElementById('ads-tbody').innerHTML = `<tr><td colspan="8" class="table-td text-center text-[var(--text-dim)] py-8">Nenhum criativo encontrado${creativeSearch ? ' para "'+escapeHtml(creativeSearch)+'"' : ''}</td></tr>`;
         return;
       }
 
       document.getElementById('ads-tbody').innerHTML = ads.map((r,i) => {
-        const fallbackTag = r.isFallback ? ` <span class="text-[10px] text-[var(--text-dim-2)] font-normal italic">(grupo)</span>` : '';
         const nameHtml = r.link
-          ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer" class="ad-link font-semibold" title="Abrir criativo">${escapeHtml(r.name || '—')} ${linkIcon}</a>${fallbackTag}`
-          : `<span class="font-semibold">${escapeHtml(r.name || '—')}</span>${fallbackTag}`;
+          ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer" class="ad-link font-semibold" title="Abrir criativo">${escapeHtml(r.name || '—')} ${linkIcon}</a>`
+          : `<span class="font-semibold">${escapeHtml(r.name || '—')}</span>`;
+        return `
+          <tr class="ad-row">
+            <td class="table-td text-[var(--text-dim)] font-semibold">${i+1}</td>
+            <td class="table-td">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="platform-badge meta">Meta</span>
+                ${nameHtml}
+              </div>
+            </td>
+            <td class="table-td text-right">${fmt(r.impressions)}</td>
+            <td class="table-td text-right">${fmtBRL(r.cpm)}</td>
+            <td class="table-td text-right">${fmt(r.clicks)}</td>
+            <td class="table-td text-right ${r.ctr > 1 ? 'text-[var(--green)] font-bold' : r.ctr > 0.5 ? 'font-semibold' : 'text-[var(--red)]'}">${fmtPct(r.ctr)}</td>
+            <td class="table-td text-right">${fmt(r.leads)}</td>
+            <td class="table-td text-right font-semibold">${fmtBRL(r.spend)}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    let currentDisplayRank = 'impressions';
+    function renderDisplayAdsTable() {
+      // Google Display only — Search keywords sao tratadas na outra tabela
+      const rows = filteredRows().filter(r => r.source === 'google' && /DISPLAY/i.test(r.campaign || ''));
+      const grouped = {};
+      rows.forEach(r => {
+        const k = r.ad;
+        if (!grouped[k]) grouped[k] = { name: r.ad, adGroup: r.adset, rows: [] };
+        grouped[k].rows.push(r);
+      });
+      let ads = Object.values(grouped).map(g => ({
+        name: g.name, adGroup: g.adGroup,
+        image: resolveAdImage(g.name, null),
+        variants: getAdVariants(g.name),
+        ...aggregate(g.rows),
+      }));
+      ads.sort((a,b) => (b[currentDisplayRank] || 0) - (a[currentDisplayRank] || 0));
+
+      const countEl = document.getElementById('display-count');
+      if (countEl) countEl.textContent = ads.length;
+
+      if (!ads.length) {
+        document.getElementById('display-tbody').innerHTML = `<tr><td colspan="9" class="table-td text-center text-[var(--text-dim)] py-8">Nenhum criativo Display no período. Adicione linhas <code>G77_LEAD_DISPLAY_RMKT</code> na planilha Google.</td></tr>`;
+        return;
+      }
+
+      document.getElementById('display-tbody').innerHTML = ads.map((r,i) => {
         const variantsAttr = r.variants ? `data-variants='${escapeHtml(JSON.stringify(r.variants))}'` : '';
         const variantBadge = r.variants ? `<span class="variant-count">${r.variants.length}</span>` : '';
         const thumbHtml = r.image
@@ -1312,12 +1383,12 @@
             <td class="table-td">${thumbHtml}</td>
             <td class="table-td">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="platform-badge ${r.source}">${r.source === 'meta' ? 'Meta' : 'Google'}</span>
-                ${nameHtml}
+                <span class="platform-badge google">Display</span>
+                <span class="font-semibold">${escapeHtml(r.name || '—')}</span>
               </div>
             </td>
-            <td class="table-td text-right">${fmt(r.impressions)}</td>
-            <td class="table-td text-right">${fmtBRL(r.cpm)}</td>
+            <td class="table-td text-[var(--text-dim)]">${escapeHtml(r.adGroup || '—')}</td>
+            <td class="table-td text-right font-semibold">${fmt(r.impressions)}</td>
             <td class="table-td text-right">${fmt(r.clicks)}</td>
             <td class="table-td text-right ${r.ctr > 1 ? 'text-[var(--green)] font-bold' : r.ctr > 0.5 ? 'font-semibold' : 'text-[var(--red)]'}">${fmtPct(r.ctr)}</td>
             <td class="table-td text-right">${fmt(r.leads)}</td>
@@ -1534,6 +1605,7 @@
       renderMatchTypeChart();
       renderAdsetTable();
       renderAdsTable();
+      renderDisplayAdsTable();
       renderKeywordsTable();
       renderInsights();
       renderMeta();
@@ -1591,6 +1663,14 @@
         btn.classList.add('active');
         currentKwRank = btn.dataset.kwRank;
         renderKeywordsTable();
+      });
+    });
+    document.querySelectorAll('[data-display-rank]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-display-rank]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentDisplayRank = btn.dataset.displayRank;
+        renderDisplayAdsTable();
       });
     });
     document.querySelectorAll('[data-date]').forEach(btn => {
