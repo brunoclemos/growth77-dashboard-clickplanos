@@ -15,10 +15,13 @@ Após habilitar GitHub Pages, a dashboard fica disponível em:
 Os dados vêm direto da planilha do cliente. Qualquer alteração na planilha aparece na dashboard ao recarregar.
 
 ## Fontes de dados
-- **Aba `Facebook`** (gid=609054384) — Meta Ads
-- **Aba `Google`** (gid=0) — Google Ads
+- **Aba `Facebook`** (gid=609054384) — Meta Ads (todas as campanhas)
+- **Aba `Google`** (gid=0) — Google Ads, **apenas SEARCH** (filtro `/SEARCH/i` aplicado em `Campaign Name`)
 
 Investimento (R$) é calculado como `(Impressões / 1000) × CPM` para ambas as plataformas, já que o sheet não tem coluna de Spend explícita.
+
+### Nome do anúncio (Google Search)
+Se a coluna `Ad Name` estiver vazia na planilha (caso comum quando exportado direto do Google Ads sem incluir nome do RSA), a dashboard cai para `Ad Group Name` como identificador e mostra a tag `(grupo)` ao lado pra ficar transparente. Quando você completar o export com o nome do anúncio, automaticamente passa a exibir o nome real.
 
 ## Filtro de plataforma
 A dashboard tem 3 modos no topo: **Todas as plataformas / Meta Ads / Google Ads** — todos os gráficos e tabelas se atualizam dinamicamente.

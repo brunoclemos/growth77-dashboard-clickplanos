@@ -146,9 +146,9 @@
     <section class="flex flex-col gap-5">
       <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <div class="chip mb-3"><div class="pulse"></div>DADOS EM TEMPO REAL — META ADS + GOOGLE ADS</div>
+          <div class="chip mb-3"><div class="pulse"></div>DADOS EM TEMPO REAL — META ADS + GOOGLE SEARCH</div>
           <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Dashboard de Aquisição <span class="gradient-text">ClickPlanos</span></h1>
-          <p class="text-[var(--text-dim)] mt-2 text-sm max-w-2xl">Performance consolidada das campanhas pagas — Meta Ads + Google Ads. Funil completo de impressões a leads qualificados.</p>
+          <p class="text-[var(--text-dim)] mt-2 text-sm max-w-2xl">Performance consolidada das campanhas pagas — Meta Ads + Google Ads (Search). Funil completo de impressões a leads qualificados.</p>
         </div>
         <div class="flex flex-wrap gap-2 text-xs">
           <span class="px-3 py-1.5 rounded-lg bg-[var(--card-2)] border border-[var(--border)] text-[var(--text-dim)]"><span class="text-[var(--text)] font-semibold" id="date-range">—</span> • período</span>
@@ -342,6 +342,8 @@
       { source: 'meta',   gid: '609054384', label: 'Meta Ads',   color: '#4D8BFF' },
       { source: 'google', gid: '0',          label: 'Google Ads', color: '#FFB800' },
     ];
+    // Filtro: pro Google, manter apenas campanhas SEARCH (ignora DISPLAY, PMAX, VIDEO, etc)
+    const GOOGLE_CAMPAIGN_FILTER = /SEARCH/i;
     const csvUrl = (gid) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}&_=${Date.now()}`;
 
     Chart.defaults.color = '#9CA3AF';
@@ -438,12 +440,21 @@
                   leads: num(r['Custom Action Lead-GTM (CA - Click Planos CP01)']),
                 };
               } else {
+                const camp = r['Campaign Name'];
+                // Filtra Google: somente campanhas SEARCH
+                if (!camp || !GOOGLE_CAMPAIGN_FILTER.test(camp)) return null;
+                const rawAdName = (r['Ad Name'] || '').trim();
+                const adGroup = (r['Ad Group Name'] || '').trim();
+                // Para SEARCH, Ad Name normalmente eh o nome do RSA. Se a planilha estiver vazia,
+                // cai pro Ad Group Name como fallback.
+                const adDisplay = rawAdName || adGroup || '—';
                 n = {
                   source: 'google',
                   date: r['Date (Segment)'] || r['Date'],
-                  campaign: r['Campaign Name'],
-                  adset: r['Ad Group Name'],
-                  ad: r['Ad Name'],
+                  campaign: camp,
+                  adset: adGroup,
+                  ad: adDisplay,
+                  adIsFallback: !rawAdName,
                   impressions: num(r['Impressions']),
                   cpm: num(r['Average CPM']),
                   clicks: num(r['Clicks']),
@@ -462,7 +473,7 @@
               n.spend = (n.impressions / 1000) * n.cpm;
               n.link = (linkKey && isValidUrl(r[linkKey])) ? String(r[linkKey]).trim() : null;
               return n;
-            }).filter(r => r.date && r.ad);
+            }).filter(r => r && r.date && r.ad);
             resolve(normalized);
           },
           error: (err) => reject(err),
@@ -522,7 +533,7 @@
         { label: 'Impressões', value: fmtCompact(agg.impressions), sub: fmt(agg.impressions) + ' totais', icon: '👁' },
         { label: 'Cliques', value: fmt(agg.clicks), sub: 'CPC ' + fmtBRL(agg.cpc), icon: '👆' },
         { label: 'CTR Médio', value: fmtPct(agg.ctr), sub: 'engajamento dos criativos', icon: '⚡' },
-        { label: 'Leads', value: fmt(agg.leads), sub: currentPlatform==='google' ? 'conversões Google Ads' : currentPlatform==='meta' ? 'CP01 (click_planos)' : 'CP01 + conversões Google', icon: '🎯' },
+        { label: 'Leads', value: fmt(agg.leads), sub: currentPlatform==='google' ? 'conversões Google Search' : currentPlatform==='meta' ? 'CP01 (click_planos)' : 'CP01 + Google Search', icon: '🎯' },
         { label: 'Custo por Lead', value: agg.leads > 0 ? fmtBRL(agg.cpl) : '—', sub: 'invest. / leads', icon: '💎' },
         { label: 'Taxa de Conversão', value: agg.impressions > 0 ? fmtPct(agg.leads/agg.impressions*100) : '0%', sub: 'lead/impressão', icon: '📈' },
         { label: 'CPM Médio', value: fmtBRL(agg.cpm), sub: 'custo por mil impressões', icon: '📊' },
@@ -827,12 +838,12 @@
       const grouped = {};
       rows.forEach(r => {
         const k = `${r.source}::${r.ad}`;
-        if (!grouped[k]) grouped[k] = { source: r.source, name: r.ad, link: null, rows: [] };
+        if (!grouped[k]) grouped[k] = { source: r.source, name: r.ad, link: null, isFallback: !!r.adIsFallback, rows: [] };
         grouped[k].rows.push(r);
         if (!grouped[k].link && r.link) grouped[k].link = r.link;
       });
       let ads = Object.values(grouped).map(g => ({
-        source: g.source, name: g.name, link: g.link, ...aggregate(g.rows),
+        source: g.source, name: g.name, link: g.link, isFallback: g.isFallback, ...aggregate(g.rows),
       }));
       ads.sort((a,b) => (b[currentRank] || 0) - (a[currentRank] || 0));
 
@@ -843,9 +854,10 @@
       const linkIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>`;
 
       document.getElementById('ads-tbody').innerHTML = ads.map((r,i) => {
+        const fallbackTag = r.isFallback ? ` <span class="text-[10px] text-[var(--text-dim-2)] font-normal italic" title="Ad Name vazio na planilha — exibindo Ad Group">(grupo)</span>` : '';
         const nameHtml = r.link
-          ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer" class="ad-link font-semibold" title="Abrir criativo">${escapeHtml(r.name || '—')} ${linkIcon}</a>`
-          : `<span class="font-semibold">${escapeHtml(r.name || '—')}</span>`;
+          ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer" class="ad-link font-semibold" title="Abrir criativo">${escapeHtml(r.name || '—')} ${linkIcon}</a>${fallbackTag}`
+          : `<span class="font-semibold">${escapeHtml(r.name || '—')}</span>${fallbackTag}`;
         return `
           <tr class="ad-row">
             <td class="table-td text-[var(--text-dim)] font-semibold">${i+1}</td>
