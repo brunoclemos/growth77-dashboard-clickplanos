@@ -14,15 +14,33 @@ Após habilitar GitHub Pages, a dashboard fica disponível em:
 ## Atualizar dados
 Os dados vêm direto da planilha do cliente. Qualquer alteração na planilha aparece na dashboard ao recarregar.
 
+## Fontes de dados
+- **Aba `Facebook`** (gid=609054384) — Meta Ads
+- **Aba `Google`** (gid=0) — Google Ads
+
+Investimento (R$) é calculado como `(Impressões / 1000) × CPM` para ambas as plataformas, já que o sheet não tem coluna de Spend explícita.
+
+## Filtro de plataforma
+A dashboard tem 3 modos no topo: **Todas as plataformas / Meta Ads / Google Ads** — todos os gráficos e tabelas se atualizam dinamicamente.
+
+## Link de criativo (auto-detectado)
+Quando você adicionar uma coluna com URLs dos criativos na planilha, a dashboard detecta automaticamente:
+- Qualquer header contendo `link`, `url`, `criativo` ou `creative` (case-insensitive)
+- Ou qualquer coluna cujo valor seja um URL válido (`https://...`)
+
+Nomes de criativos na seção "Top Criativos" viram **clicáveis** (abrem em nova aba) assim que houver link disponível.
+
 ## KPIs exibidos
-- Impressões, Investimento, Cliques, CTR
-- Landing Page Views, Leads (CP01), CPL, Taxa de conversão geral
-- Funil completo (Impressão → Click → LPV → Lead)
-- Performance temporal por dia
+- Investimento total (com breakdown Meta vs Google)
+- Impressões, Cliques, CTR, CPM, CPC
+- Leads (CP01 do Meta + Conversões do Google), CPL, Taxa de conversão
+- Funil completo (Impressão → Click → [LPV] → Lead)
+- Comparativo Meta vs Google (investimento, CTR, CPL, conversões)
+- Performance temporal por dia (com linhas separadas por plataforma)
 - Distribuição por campanha (FRIO / WARM / QUENTE)
-- Posicionamento FEED vs STORIES
+- Posicionamento FEED vs STORIES (Meta)
 - Ranking de criativos e adsets
-- Insights automáticos (melhor/pior criativo, vencedor de placement, alertas de tracking)
+- Insights automáticos (plataforma vencedora, melhor/pior criativo, alertas de tracking)
 
 ---
 Feito por **GROWTH77** — Acquisition Agency.
