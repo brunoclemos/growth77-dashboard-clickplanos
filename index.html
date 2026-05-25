@@ -132,22 +132,44 @@
     .thumb-wrap { position: relative; display: inline-block; }
     .variant-count { position: absolute; top: -4px; right: -4px; background: var(--green); color: #000; font-size: 9px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 9999px; padding: 0 4px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg); pointer-events: none; }
     .thumb-loading { width: 48px; height: 48px; border-radius: 8px; background: linear-gradient(90deg, #161616 0%, #222 50%, #161616 100%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border: 1px solid var(--border); }
-    /* Creatives Gallery */
-    .creative-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: all .2s ease; cursor: pointer; display: flex; flex-direction: column; }
-    .creative-card:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 255, 107, 0.08); }
-    .creative-card-thumb { aspect-ratio: 1 / 1; background: var(--card-2); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
-    .creative-card-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease; }
-    .creative-card:hover .creative-card-thumb img { transform: scale(1.04); }
-    .creative-card-thumb-placeholder { color: var(--text-dim-2); font-size: 42px; }
-    .creative-card-ext-icon { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; padding: 7px; background: rgba(10,10,10,0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 50%; color: #fff; opacity: 0; transform: translateY(-4px); transition: all .2s ease; backdrop-filter: blur(8px); }
-    .creative-card-external:hover .creative-card-ext-icon { opacity: 1; transform: translateY(0); }
-    .creative-card-external { cursor: pointer; }
-    .creative-card-body { padding: 12px 14px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
-    .creative-card-name { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.3; word-break: break-word; }
-    .creative-card-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border); margin-top: auto; }
-    .creative-card-stat { display: flex; flex-direction: column; gap: 1px; }
-    .creative-card-stat .label { font-size: 9px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim-2); font-weight: 600; }
-    .creative-card-stat .value { font-size: 11px; font-weight: 700; color: var(--text); }
+    /* Creatives List (Veiculados) */
+    .vlist { display: flex; flex-direction: column; gap: 6px; }
+    .vrow {
+      display: grid;
+      grid-template-columns: 60px minmax(0, 1fr) auto auto auto 18px;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .vrow:hover { border-color: var(--green); transform: translateX(2px); }
+    .vrow-thumb { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: var(--card-2); border: 1px solid var(--border); }
+    .vrow-thumb-placeholder { width: 56px; height: 56px; border-radius: 8px; background: var(--card-2); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-dim-2); font-size: 22px; }
+    .vrow-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .vrow-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; font-size: 10px; }
+    .vrow-stat { display: flex; flex-direction: column; gap: 1px; text-align: right; min-width: 64px; }
+    .vrow-stat .label { font-size: 9px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim-2); font-weight: 600; }
+    .vrow-stat .value { font-size: 12px; font-weight: 700; color: var(--text); }
+    .vrow-arrow { color: var(--text-dim-2); font-size: 16px; transition: all .15s; }
+    .vrow:hover .vrow-arrow { color: var(--green); transform: translateX(3px); }
+    .vrow.paused { opacity: 0.55; }
+    .vrow.paused:hover { opacity: 1; }
+    .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 9999px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .status-active { background: rgba(0,255,107,.12); color: var(--green); }
+    .status-paused { background: rgba(107,114,128,.18); color: #9CA3AF; }
+    .status-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .status-active .status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-paused .status-dot { background: #9CA3AF; }
+    @media (max-width: 768px) {
+      .vrow { grid-template-columns: 50px minmax(0, 1fr) 14px; gap: 10px; padding: 8px 10px; }
+      .vrow-thumb, .vrow-thumb-placeholder { width: 46px; height: 46px; }
+      .vrow-stat { display: none; }
+      .vrow-name { font-size: 12px; }
+    }
     .progress-bar { height: 8px; border-radius: 4px; background: var(--card-2); overflow: hidden; position: relative; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green) 0%, var(--green-2) 100%); border-radius: 4px; transition: width .6s ease; }
     .progress-fill.warn { background: linear-gradient(90deg, var(--amber) 0%, #FFA000 100%); }
@@ -462,19 +484,19 @@
       </div>
     </section>
 
-    <!-- Criativos Veiculados (gallery) -->
+    <!-- Criativos Veiculados (list) -->
     <section class="card p-6" id="veiculados-section">
       <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <div class="text-xs uppercase tracking-widest text-[var(--green)] font-semibold">Criativos Veiculados</div>
-          <div class="text-lg font-bold mt-0.5"><span id="veiculados-count">—</span> anúncios <span class="text-xs font-medium text-[var(--text-dim)] ml-1">no período selecionado</span></div>
+          <div class="text-lg font-bold mt-0.5"><span id="veiculados-count">—</span> anúncios <span class="text-xs font-medium text-[var(--text-dim)] ml-1" id="veiculados-breakdown"></span></div>
         </div>
         <div class="platform-tabs" id="veiculados-tabs">
           <div class="platform-tab active meta" data-veiculados="meta"><span class="platform-dot platform-meta-dot"></span> Meta Ads</div>
           <div class="platform-tab google" data-veiculados="google"><span class="platform-dot platform-google-dot"></span> Google Display</div>
         </div>
       </div>
-      <div id="veiculados-gallery" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+      <div id="veiculados-gallery" class="vlist"></div>
     </section>
 
     <!-- Top creatives (Meta) -->
@@ -1366,9 +1388,9 @@
         el.classList.toggle('criativos-hidden', isCriativos);
       });
 
-      document.getElementById('creatives-section').classList.toggle('hidden', !(showMeta && hasMetaCreatives));
-      document.getElementById('display-creatives-section').classList.toggle('hidden', !(showGoogle && hasGoogleDisplay));
-      // Keywords escondida no modo Criativos (cliente quer ver visualmente, e keywords e textual)
+      // No modo Criativos, esconde tabelas Top Criativos (cliente quer ver so a lista)
+      document.getElementById('creatives-section').classList.toggle('hidden', isCriativos || !(showMeta && hasMetaCreatives));
+      document.getElementById('display-creatives-section').classList.toggle('hidden', isCriativos || !(showGoogle && hasGoogleDisplay));
       document.getElementById('keywords-section').classList.toggle('hidden',  isCriativos || !(showGoogle && hasGoogleKeywords));
       document.getElementById('placement-card').classList.toggle('hidden', !showMeta || isCriativos);
       document.getElementById('matchtype-card').classList.toggle('hidden', isCriativos || !(showGoogle && hasGoogleKeywords));
@@ -1615,13 +1637,13 @@
       document.getElementById('budget-meta').innerHTML = `Dados da aba <span class="font-semibold text-[var(--text)]">Budgets</span>`;
     }
 
-    // ============ CRIATIVOS VEICULADOS (gallery view) ============
+    // ============ CRIATIVOS VEICULADOS (list view - ativos + pausados) ============
     let currentVeiculados = 'meta';
     function renderVeiculados() {
-      const baseRows = filteredRows();
+      // Usa allData (sem filtro de data) p/ incluir anuncios pausados
       const rows = currentVeiculados === 'meta'
-        ? baseRows.filter(r => r.source === 'meta')
-        : baseRows.filter(r => r.source === 'google' && /DISPLAY/i.test(r.campaign || ''));
+        ? allData.filter(r => r.source === 'meta')
+        : allData.filter(r => r.source === 'google' && /DISPLAY/i.test(r.campaign || ''));
 
       const grouped = {};
       rows.forEach(r => {
@@ -1631,22 +1653,37 @@
         if (!grouped[k].link  && r.link)  grouped[k].link  = r.link;
         if (!grouped[k].image && r.image) grouped[k].image = r.image;
       });
+
+      const { start, end } = dateRange();
       const ads = Object.values(grouped).map(g => {
-        const agg = aggregate(g.rows);
+        const periodRows = g.rows.filter(r => (!start || r.date >= start) && (!end || r.date <= end));
+        const periodAgg = aggregate(periodRows);
+        const lifetimeAgg = aggregate(g.rows);
+        const isActive = periodAgg.impressions > 0;
+        const showAgg = isActive ? periodAgg : lifetimeAgg;
         const localImg = currentVeiculados === 'google' ? resolveAdImage(g.name, g.image) : g.image;
         return {
           name: g.name, link: g.link, image: localImg,
           variants: currentVeiculados === 'google' ? getAdVariants(g.name) : null,
-          ...agg,
+          isActive,
+          ...showAgg,
         };
-      }).sort((a,b) => b.impressions - a.impressions);
+      }).sort((a,b) => {
+        if (a.isActive !== b.isActive) return b.isActive - a.isActive;
+        return b.impressions - a.impressions;
+      });
 
+      const activos = ads.filter(a => a.isActive).length;
+      const pausados = ads.length - activos;
       document.getElementById('veiculados-count').textContent = ads.length;
+      document.getElementById('veiculados-breakdown').innerHTML = ads.length
+        ? `<span class="text-[var(--green)] font-semibold">${activos} ativo${activos!==1?'s':''}</span> · <span class="text-[var(--text-dim-2)] font-semibold">${pausados} pausado${pausados!==1?'s':''}</span>`
+        : '';
 
       if (!ads.length) {
         document.getElementById('veiculados-gallery').innerHTML = `
-          <div class="col-span-full text-center text-[var(--text-dim)] py-10 text-sm">
-            Nenhum criativo ${currentVeiculados === 'meta' ? 'Meta' : 'Google Display'} no período selecionado.
+          <div class="text-center text-[var(--text-dim)] py-10 text-sm">
+            Nenhum criativo ${currentVeiculados === 'meta' ? 'Meta' : 'Google Display'} encontrado.
           </div>`;
         return;
       }
@@ -1655,80 +1692,71 @@
         // Thumbnail
         let thumb;
         if (r.image) {
-          thumb = `<img src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name)}" onerror="this.outerHTML='<div class=&quot;creative-card-thumb-placeholder&quot;>&#9646;</div>'" />`;
+          thumb = `<img src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name)}" class="vrow-thumb" onerror="this.outerHTML='<div class=&quot;vrow-thumb-placeholder&quot;>&#9646;</div>'" />`;
         } else if (r.link && currentVeiculados === 'meta') {
           const cached = getCachedOg(r.link);
           if (cached) {
-            thumb = `<img src="${escapeHtml(cached)}" alt="${escapeHtml(r.name)}" data-og-link="${escapeHtml(r.link)}" onerror="retryOgImageCard(this)" />`;
+            thumb = `<img src="${escapeHtml(cached)}" alt="${escapeHtml(r.name)}" class="vrow-thumb" data-og-link="${escapeHtml(r.link)}" onerror="retryOgImageRow(this)" />`;
           } else if (cached === null) {
-            thumb = `<div class="creative-card-thumb-placeholder">▦</div>`;
+            thumb = `<div class="vrow-thumb-placeholder">▦</div>`;
           } else {
-            thumb = `<div class="thumb-loading" style="width:100%;height:100%;border-radius:0;" data-og-url-card="${escapeHtml(r.link)}"></div>`;
+            thumb = `<div class="vrow-thumb-placeholder thumb-loading" style="border:none;" data-og-url-row="${escapeHtml(r.link)}"></div>`;
           }
         } else {
-          thumb = `<div class="creative-card-thumb-placeholder">▦</div>`;
+          thumb = `<div class="vrow-thumb-placeholder">▦</div>`;
         }
         const variantsAttr = r.variants ? `data-variants='${escapeHtml(JSON.stringify(r.variants))}'` : '';
-        // Meta com link -> abre Instagram em nova aba
-        // Google Display -> abre lightbox com variantes
-        // Fallback (Meta sem link mas com og:image) -> lightbox
         let onclick = '';
-        let extraClass = '';
-        let extraIcon = '';
         if (currentVeiculados === 'meta' && r.link) {
           onclick = `onclick="window.open('${escapeHtml(r.link)}','_blank','noopener,noreferrer')"`;
-          extraClass = 'creative-card-external';
-          extraIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="creative-card-ext-icon"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>`;
         } else if (r.image) {
           onclick = `onclick="openLightbox('${escapeHtml(r.image)}', this.dataset.variants)"`;
         }
+        const statusBadge = r.isActive
+          ? `<span class="status-badge status-active"><span class="status-dot"></span>Ativo</span>`
+          : `<span class="status-badge status-paused"><span class="status-dot"></span>Pausado</span>`;
         return `
-          <div class="creative-card ${extraClass}" ${variantsAttr} ${onclick}>
-            <div class="creative-card-thumb">
-              ${thumb}
-              ${extraIcon}
-            </div>
-            <div class="creative-card-body">
-              <div class="flex items-center gap-1.5 flex-wrap">
+          <div class="vrow ${r.isActive ? '' : 'paused'}" ${variantsAttr} ${onclick}>
+            ${thumb}
+            <div>
+              <div class="vrow-name">${escapeHtml(r.name || '—')}</div>
+              <div class="vrow-meta">
                 <span class="platform-badge ${currentVeiculados === 'meta' ? 'meta' : 'google'}">${currentVeiculados === 'meta' ? 'Meta' : 'Display'}</span>
+                ${statusBadge}
                 ${r.variants ? `<span class="text-[9px] font-bold text-[var(--green)] uppercase tracking-wider">${r.variants.length} variantes</span>` : ''}
-                ${currentVeiculados === 'meta' && r.link ? `<span class="text-[9px] font-bold text-[var(--meta)] uppercase tracking-wider ml-auto">ver no instagram →</span>` : ''}
-              </div>
-              <div class="creative-card-name">${escapeHtml(r.name || '—')}</div>
-              <div class="creative-card-stats">
-                <div class="creative-card-stat"><div class="label">Impr.</div><div class="value">${fmtCompact(r.impressions)}</div></div>
-                <div class="creative-card-stat"><div class="label">CTR</div><div class="value ${r.ctr > 1 ? 'text-[var(--green)]' : r.ctr > 0.5 ? '' : 'text-[var(--red)]'}">${fmtPct(r.ctr)}</div></div>
-                <div class="creative-card-stat"><div class="label">Invest.</div><div class="value">${fmtBRL(r.spend)}</div></div>
               </div>
             </div>
+            <div class="vrow-stat"><div class="label">Impr.</div><div class="value">${fmtCompact(r.impressions)}</div></div>
+            <div class="vrow-stat"><div class="label">CTR</div><div class="value ${r.ctr > 1 ? 'text-[var(--green)]' : r.ctr > 0.5 ? '' : 'text-[var(--red)]'}">${fmtPct(r.ctr)}</div></div>
+            <div class="vrow-stat"><div class="label">Invest.</div><div class="value">${fmtBRL(r.spend)}</div></div>
+            <div class="vrow-arrow">→</div>
           </div>`;
       }).join('');
 
-      // Async hydrate previews via Microlink pros cards Meta sem cache
       hydrateVeiculadosCards();
     }
 
     async function hydrateVeiculadosCards() {
-      const slots = document.querySelectorAll('[data-og-url-card]');
+      const slots = document.querySelectorAll('[data-og-url-row]');
       await Promise.allSettled([...slots].map(async (slot) => {
-        const url = slot.dataset.ogUrlCard;
+        const url = slot.dataset.ogUrlRow;
         const img = await fetchOgImage(url);
         if (img) {
-          slot.outerHTML = `<img src="${escapeHtml(img)}" alt="" data-og-link="${escapeHtml(url)}" onerror="retryOgImageCard(this)" />`;
+          slot.outerHTML = `<img src="${escapeHtml(img)}" alt="" class="vrow-thumb" data-og-link="${escapeHtml(url)}" onerror="retryOgImageRow(this)" />`;
         } else {
-          slot.outerHTML = `<div class="creative-card-thumb-placeholder">▦</div>`;
+          slot.outerHTML = `<div class="vrow-thumb-placeholder">▦</div>`;
         }
       }));
     }
-    window.retryOgImageCard = function(imgEl) {
-      if (imgEl.dataset.retried) { imgEl.outerHTML = '<div class="creative-card-thumb-placeholder">▦</div>'; return; }
+    window.retryOgImageRow = function(imgEl) {
+      if (imgEl.dataset.retried) { imgEl.outerHTML = '<div class="vrow-thumb-placeholder">▦</div>'; return; }
       const link = imgEl.dataset.ogLink;
-      if (!link) { imgEl.outerHTML = '<div class="creative-card-thumb-placeholder">▦</div>'; return; }
+      if (!link) { imgEl.outerHTML = '<div class="vrow-thumb-placeholder">▦</div>'; return; }
       imgEl.dataset.retried = '1';
       const c = _readOgCache(); delete c[link]; _writeOgCache(c);
       fetchOgImage(link).then(newImg => {
         if (newImg) imgEl.src = newImg;
-        else imgEl.outerHTML = '<div class="creative-card-thumb-placeholder">▦</div>';
+        else imgEl.outerHTML = '<div class="vrow-thumb-placeholder">▦</div>';
       });
     };
 
