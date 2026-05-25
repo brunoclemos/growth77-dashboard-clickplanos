@@ -639,6 +639,7 @@
     let allData = [];           // normalized merged rows
     let budgetsData = [];        // [{campaign, budget, isTotal}]
     let creativesManifest = {};  // { adName: filename.ext }
+    let pausedAds = { meta: new Set(), google: new Set() }; // override manual de status
     let currentPlatform = 'all'; // 'all' | 'meta' | 'google'
     let currentMetric = 'impressions';
     let currentRank = 'ctr';
@@ -885,6 +886,18 @@
         const j = await r.json();
         return j.ads || {};
       } catch { return {}; }
+    }
+    // Override manual de pausados (creatives/paused.json)
+    async function loadPausedOverride() {
+      try {
+        const r = await fetch('creatives/paused.json?_=' + Date.now());
+        if (!r.ok) return { meta: new Set(), google: new Set() };
+        const j = await r.json();
+        return {
+          meta:   new Set((j.meta   || []).map(s => String(s).trim())),
+          google: new Set((j.google || []).map(s => String(s).trim())),
+        };
+      } catch { return { meta: new Set(), google: new Set() }; }
     }
 
     // Look up a manifest entry by Ad Name. Returns {default, variants} or null.
@@ -1655,11 +1668,13 @@
       });
 
       const { start, end } = dateRange();
+      const overrideSet = pausedAds[currentVeiculados] || new Set();
       const ads = Object.values(grouped).map(g => {
         const periodRows = g.rows.filter(r => (!start || r.date >= start) && (!end || r.date <= end));
         const periodAgg = aggregate(periodRows);
         const lifetimeAgg = aggregate(g.rows);
-        const isActive = periodAgg.impressions > 0;
+        const forcedPaused = overrideSet.has(g.name);
+        const isActive = !forcedPaused && periodAgg.impressions > 0;
         const showAgg = isActive ? periodAgg : lifetimeAgg;
         const localImg = currentVeiculados === 'google' ? resolveAdImage(g.name, g.image) : g.image;
         return {
@@ -1901,10 +1916,11 @@
     async function load() {
       try {
         document.getElementById('last-update-text').textContent = 'Carregando dados...';
-        const [data, budgets, manifest] = await Promise.all([loadAll(), loadBudgets(), loadCreativesManifest()]);
+        const [data, budgets, manifest, paused] = await Promise.all([loadAll(), loadBudgets(), loadCreativesManifest(), loadPausedOverride()]);
         allData = data;
         budgetsData = budgets;
         creativesManifest = manifest;
+        pausedAds = paused;
         if (!allData.length) throw new Error('Nenhuma linha retornada das planilhas');
         syncDateInputs();
         renderAll();

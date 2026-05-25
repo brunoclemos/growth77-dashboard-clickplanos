@@ -1,0 +1,7 @@
+{
+  "_help": "Lista de Ad Names forcados a aparecer como Pausados na dashboard, mesmo que ainda tenham impressoes no periodo. Atualize quando o Bruno avisar que pausou no Ads Manager.",
+  "meta": [
+    "AD09_UNIMED_CURITIBA"
+  ],
+  "google": []
+}
