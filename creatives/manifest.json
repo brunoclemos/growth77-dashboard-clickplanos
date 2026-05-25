@@ -1,24 +1,122 @@
 {
-  "_help": "Mapeia Ad Name (da planilha) -> arquivo nesta pasta. Use 1-, 2-, 3- como prefixo de variante.",
-  "_variants": {
-    "1": "primeira variante jpg (folder 1)",
-    "2": "segunda variante jpg (folder 2)",
-    "3": "terceira variante png (folder 3)"
+  "_help": "Cada Ad Name pode ter um default + lista de variantes. O lightbox mostra pills pra trocar.",
+  "_variants_legend": {
+    "1": "variante jpg (folder 1)",
+    "2": "variante jpg (folder 2)",
+    "3": "variante png (folder 3)"
   },
   "ads": {
-    "300x50.jpg":     "1-300x50.jpg",
-    "320x50.jpg":     "1-320x50.jpg",
-    "320x50-1.jpg":   "1-320x50-1.jpg",
-    "600x600.jpg":    "1-600x600.jpg",
-    "1200x300.jpg":   "1-1200x300.jpg",
-    "1200x628.jpg":   "1-1200x628.jpg",
-    "1200x1200.jpg":  "1-1200x1200.jpg",
-    "300x50.png":     "3-300x50.png",
-    "320x50.png":     "3-320x50.png",
-    "320x50-1.png":   "3-320x50-1.png",
-    "600x600.png":    "3-600x600.png",
-    "1200x300.png":   "3-1200x300.png",
-    "1200x628.png":   "3-1200x628.png",
-    "1200x1200.png":  "3-1200x1200.png"
+    "300x50.jpg": {
+      "default": "1-300x50.jpg",
+      "variants": [
+        { "id": "1", "file": "1-300x50.jpg" },
+        { "id": "2", "file": "2-300x50.jpg" },
+        { "id": "3", "file": "3-300x50.png" }
+      ]
+    },
+    "320x50.jpg": {
+      "default": "1-320x50.jpg",
+      "variants": [
+        { "id": "1", "file": "1-320x50.jpg" },
+        { "id": "2", "file": "2-320x50.jpg" },
+        { "id": "3", "file": "3-320x50.png" }
+      ]
+    },
+    "320x50-1.jpg": {
+      "default": "1-320x50-1.jpg",
+      "variants": [
+        { "id": "1", "file": "1-320x50-1.jpg" },
+        { "id": "2", "file": "2-320x50-1.jpg" },
+        { "id": "3", "file": "3-320x50-1.png" }
+      ]
+    },
+    "600x600.jpg": {
+      "default": "1-600x600.jpg",
+      "variants": [
+        { "id": "1", "file": "1-600x600.jpg" },
+        { "id": "2", "file": "2-600x600.jpg" },
+        { "id": "3", "file": "3-600x600.png" }
+      ]
+    },
+    "1200x300.jpg": {
+      "default": "1-1200x300.jpg",
+      "variants": [
+        { "id": "1", "file": "1-1200x300.jpg" },
+        { "id": "2", "file": "2-1200x300.jpg" },
+        { "id": "3", "file": "3-1200x300.png" }
+      ]
+    },
+    "1200x628.jpg": {
+      "default": "1-1200x628.jpg",
+      "variants": [
+        { "id": "1", "file": "1-1200x628.jpg" },
+        { "id": "2", "file": "2-1200x628.jpg" },
+        { "id": "3", "file": "3-1200x628.png" }
+      ]
+    },
+    "1200x1200.jpg": {
+      "default": "1-1200x1200.jpg",
+      "variants": [
+        { "id": "1", "file": "1-1200x1200.jpg" },
+        { "id": "2", "file": "2-1200x1200.jpg" },
+        { "id": "3", "file": "3-1200x1200.png" }
+      ]
+    },
+    "300x50.png": {
+      "default": "3-300x50.png",
+      "variants": [
+        { "id": "1", "file": "1-300x50.jpg" },
+        { "id": "2", "file": "2-300x50.jpg" },
+        { "id": "3", "file": "3-300x50.png" }
+      ]
+    },
+    "320x50.png": {
+      "default": "3-320x50.png",
+      "variants": [
+        { "id": "1", "file": "1-320x50.jpg" },
+        { "id": "2", "file": "2-320x50.jpg" },
+        { "id": "3", "file": "3-320x50.png" }
+      ]
+    },
+    "320x50-1.png": {
+      "default": "3-320x50-1.png",
+      "variants": [
+        { "id": "1", "file": "1-320x50-1.jpg" },
+        { "id": "2", "file": "2-320x50-1.jpg" },
+        { "id": "3", "file": "3-320x50-1.png" }
+      ]
+    },
+    "600x600.png": {
+      "default": "3-600x600.png",
+      "variants": [
+        { "id": "1", "file": "1-600x600.jpg" },
+        { "id": "2", "file": "2-600x600.jpg" },
+        { "id": "3", "file": "3-600x600.png" }
+      ]
+    },
+    "1200x300.png": {
+      "default": "3-1200x300.png",
+      "variants": [
+        { "id": "1", "file": "1-1200x300.jpg" },
+        { "id": "2", "file": "2-1200x300.jpg" },
+        { "id": "3", "file": "3-1200x300.png" }
+      ]
+    },
+    "1200x628.png": {
+      "default": "3-1200x628.png",
+      "variants": [
+        { "id": "1", "file": "1-1200x628.jpg" },
+        { "id": "2", "file": "2-1200x628.jpg" },
+        { "id": "3", "file": "3-1200x628.png" }
+      ]
+    },
+    "1200x1200.png": {
+      "default": "3-1200x1200.png",
+      "variants": [
+        { "id": "1", "file": "1-1200x1200.jpg" },
+        { "id": "2", "file": "2-1200x1200.jpg" },
+        { "id": "3", "file": "3-1200x1200.png" }
+      ]
+    }
   }
 }

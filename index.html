@@ -127,6 +127,8 @@
     .thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: var(--card-2); border: 1px solid var(--border); cursor: pointer; transition: all .2s; }
     .thumb:hover { transform: scale(1.06); border-color: var(--green); }
     .thumb-placeholder { width: 48px; height: 48px; border-radius: 8px; background: var(--card-2); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-dim-2); font-size: 18px; }
+    .thumb-wrap { position: relative; display: inline-block; }
+    .variant-count { position: absolute; top: -4px; right: -4px; background: var(--green); color: #000; font-size: 9px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 9999px; padding: 0 4px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg); pointer-events: none; }
     .progress-bar { height: 8px; border-radius: 4px; background: var(--card-2); overflow: hidden; position: relative; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green) 0%, var(--green-2) 100%); border-radius: 4px; transition: width .6s ease; }
     .progress-fill.warn { background: linear-gradient(90deg, var(--amber) 0%, #FFA000 100%); }
@@ -134,7 +136,15 @@
     /* Lightbox */
     .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 100; cursor: zoom-out; }
     .lightbox.active { display: flex; }
-    .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .lightbox-inner { position: relative; max-width: 92vw; max-height: 92vh; display: flex; flex-direction: column; align-items: center; gap: 16px; cursor: default; }
+    .lightbox img { max-width: 92vw; max-height: 80vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); object-fit: contain; }
+    .lightbox-close { position: absolute; top: -42px; right: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--card); color: var(--text); border: 1px solid var(--border); font-size: 20px; line-height: 1; cursor: pointer; font-weight: 300; transition: all .18s; }
+    .lightbox-close:hover { border-color: var(--green); color: var(--green); }
+    .lightbox-variants { display: flex; gap: 8px; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 9999px; }
+    .lightbox-variants .v-pill { padding: 8px 16px; border-radius: 9999px; font-size: 13px; font-weight: 700; color: var(--text-dim); background: transparent; border: none; cursor: pointer; transition: all .18s; user-select: none; min-width: 44px; }
+    .lightbox-variants .v-pill:hover { color: var(--text); background: var(--card-2); }
+    .lightbox-variants .v-pill.active { color: #000; background: var(--green); box-shadow: 0 0 0 2px rgba(0,255,107,0.25); }
+    .lightbox-variants .v-pill::before { content: 'Variante '; opacity: 0.65; font-weight: 500; }
 
     /* ============ MOBILE RESPONSIVE ============ */
     @media (max-width: 768px) {
@@ -486,8 +496,12 @@
   </main>
 
   <!-- Lightbox for creative preview -->
-  <div class="lightbox" id="lightbox" onclick="this.classList.remove('active')">
-    <img id="lightbox-img" src="" alt="" />
+  <div class="lightbox" id="lightbox" onclick="if(event.target===this)this.classList.remove('active')">
+    <div class="lightbox-inner">
+      <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('active')" title="Fechar (ESC)">×</button>
+      <img id="lightbox-img" src="" alt="" />
+      <div id="lightbox-variants" class="lightbox-variants hidden"></div>
+    </div>
   </div>
 
   <!-- Footer -->
@@ -705,18 +719,36 @@
       } catch { return {}; }
     }
 
-    // Resolve image path for an ad: planilha column > manifest > ad-name-with-extension fallback > null
+    // Look up a manifest entry by Ad Name. Returns {default, variants} or null.
+    // Supports both formats: string (legacy) or { default, variants: [{id,file}] }.
+    function lookupManifest(adName) {
+      if (!adName) return null;
+      let entry = creativesManifest[adName];
+      if (!entry) {
+        const ciKey = Object.keys(creativesManifest).find(k => k.toLowerCase() === adName.toLowerCase());
+        if (ciKey) entry = creativesManifest[ciKey];
+      }
+      if (!entry) return null;
+      if (typeof entry === 'string') return { default: entry, variants: [{ id: '1', file: entry }] };
+      if (entry.default && Array.isArray(entry.variants)) return entry;
+      return null;
+    }
+
+    // Returns default image URL for thumbnail (planilha column > manifest default > direct path > null)
     function resolveAdImage(adName, planilhaImage) {
       if (planilhaImage) return planilhaImage;
       if (!adName) return null;
-      // Direct manifest hit
-      if (creativesManifest[adName]) return 'creatives/' + creativesManifest[adName];
-      // Case-insensitive
-      const ciKey = Object.keys(creativesManifest).find(k => k.toLowerCase() === adName.toLowerCase());
-      if (ciKey) return 'creatives/' + creativesManifest[ciKey];
-      // If Ad Name already has an image extension (e.g. "300x50.jpg"), try direct path
+      const m = lookupManifest(adName);
+      if (m) return 'creatives/' + m.default;
       if (/\.(jpe?g|png|gif|webp|avif)$/i.test(adName)) return 'creatives/' + adName;
       return null;
+    }
+
+    // Returns variants array for lightbox switcher, or null if no variants
+    function getAdVariants(adName) {
+      const m = lookupManifest(adName);
+      if (!m || m.variants.length < 2) return null;
+      return m.variants.map(v => ({ id: v.id, url: 'creatives/' + v.file }));
     }
 
     // Tries to load a Budgets tab. Accepts column names: Campaign / Campanha / Nome + Budget / Orcamento / Total / Valor
@@ -1237,6 +1269,7 @@
       let ads = Object.values(grouped).map(g => ({
         source: g.source, name: g.name, link: g.link,
         image: resolveAdImage(g.name, g.image),
+        variants: getAdVariants(g.name),
         isFallback: g.isFallback, ...aggregate(g.rows),
       }));
 
@@ -1265,8 +1298,13 @@
         const nameHtml = r.link
           ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer" class="ad-link font-semibold" title="Abrir criativo">${escapeHtml(r.name || '—')} ${linkIcon}</a>${fallbackTag}`
           : `<span class="font-semibold">${escapeHtml(r.name || '—')}</span>${fallbackTag}`;
+        const variantsAttr = r.variants ? `data-variants='${escapeHtml(JSON.stringify(r.variants))}'` : '';
+        const variantBadge = r.variants ? `<span class="variant-count">${r.variants.length}</span>` : '';
         const thumbHtml = r.image
-          ? `<img src="${escapeHtml(r.image)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(r.image)}')" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot; title=&quot;Imagem nao encontrada&quot;>&#9646;</div>'" />`
+          ? `<div class="thumb-wrap">
+              <img src="${escapeHtml(r.image)}" alt="" class="thumb" ${variantsAttr} onclick="openLightbox('${escapeHtml(r.image)}', this.dataset.variants)" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot; title=&quot;Imagem nao encontrada&quot;>&#9646;</div>'" />
+              ${variantBadge}
+            </div>`
           : `<div class="thumb-placeholder" title="Sem preview">▦</div>`;
         return `
           <tr class="ad-row">
@@ -1288,9 +1326,26 @@
       }).join('');
     }
 
-    window.openLightbox = function(url) {
-      document.getElementById('lightbox-img').src = url;
+    window.openLightbox = function(url, variantsJson) {
+      const img = document.getElementById('lightbox-img');
+      const variantsEl = document.getElementById('lightbox-variants');
+      img.src = url;
+      let variants = [];
+      try { variants = variantsJson ? JSON.parse(variantsJson) : []; } catch {}
+      if (variants.length > 1) {
+        variantsEl.classList.remove('hidden');
+        variantsEl.innerHTML = variants.map(v =>
+          `<button class="v-pill ${v.url === url ? 'active' : ''}" onclick="switchVariant(this, '${escapeHtml(v.url)}')">${escapeHtml(v.id)}</button>`
+        ).join('');
+      } else {
+        variantsEl.classList.add('hidden');
+      }
       document.getElementById('lightbox').classList.add('active');
+    };
+    window.switchVariant = function(btn, url) {
+      document.getElementById('lightbox-img').src = url;
+      btn.parentElement.querySelectorAll('.v-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
     };
 
     function renderBudgets() {
