@@ -20,8 +20,16 @@ Os dados vêm direto da planilha do cliente. Qualquer alteração na planilha ap
 
 Investimento (R$) é calculado como `(Impressões / 1000) × CPM` para ambas as plataformas, já que o sheet não tem coluna de Spend explícita.
 
-### Nome do anúncio (Google Search)
-Se a coluna `Ad Name` estiver vazia na planilha (caso comum quando exportado direto do Google Ads sem incluir nome do RSA), a dashboard cai para `Ad Group Name` como identificador e mostra a tag `(grupo)` ao lado pra ficar transparente. Quando você completar o export com o nome do anúncio, automaticamente passa a exibir o nome real.
+### Google Search — keyword-level
+A aba `Google` tá em granularidade de keyword (linhas = Date × Campaign × Ad Group × Keyword). A dashboard usa essa estrutura assim:
+- **Top Palavras-chave**: tabela rankeável por impressões/cliques/CTR/conv./investimento, mostrando keyword + match type (EXACT/PHRASE/BROAD) + ad group + métricas
+- **Tipo de Correspondência**: donut chart com share de impressões/cliques por match type
+- A seção **Top Criativos** mostra apenas Meta Ads (ad name vazio no export padrão do Google Ads para RSAs)
+
+### Visibilidade dinâmica por filtro de plataforma
+- **Todas**: tudo visível (Top Criativos Meta + Top Keywords Google + FEED/STORIES + Match Type)
+- **Meta**: esconde Keywords e Match Type
+- **Google**: esconde Top Criativos e FEED/STORIES
 
 ## Filtro de plataforma
 A dashboard tem 3 modos no topo: **Todas as plataformas / Meta Ads / Google Ads** — todos os gráficos e tabelas se atualizam dinamicamente.

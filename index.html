@@ -224,7 +224,7 @@
       </div>
     </section>
 
-    <!-- Campaign + Placement breakdown -->
+    <!-- Campaign + Placement/MatchType breakdown -->
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
@@ -237,7 +237,7 @@
         <div id="campaign-legend" class="mt-4 space-y-2 max-h-[180px] overflow-y-auto"></div>
       </div>
 
-      <div class="card p-6">
+      <div class="card p-6" id="placement-card">
         <div class="flex items-center justify-between mb-4">
           <div>
             <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Por Posicionamento (Meta)</div>
@@ -245,6 +245,17 @@
           </div>
         </div>
         <div class="h-[280px] relative"><canvas id="chart-placement"></canvas></div>
+      </div>
+
+      <div class="card p-6 hidden" id="matchtype-card">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-[var(--google)] font-semibold">Tipo de Correspondência (Google Search)</div>
+            <div class="text-lg font-bold mt-0.5">EXACT vs PHRASE vs BROAD</div>
+          </div>
+        </div>
+        <div class="h-[280px] relative"><canvas id="chart-matchtype"></canvas></div>
+        <div id="matchtype-legend" class="mt-4 grid grid-cols-3 gap-2"></div>
       </div>
     </section>
 
@@ -275,11 +286,47 @@
       </div>
     </section>
 
-    <!-- Top creatives -->
-    <section class="card p-6">
+    <!-- Top keywords (Google) -->
+    <section class="card p-6 hidden" id="keywords-section">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Top Criativos</div>
+          <div class="text-xs uppercase tracking-widest text-[var(--google)] font-semibold">Top Palavras-chave (Google Search)</div>
+          <div class="text-lg font-bold mt-0.5">Ranking de keywords por performance</div>
+        </div>
+        <div class="flex gap-1 bg-[var(--card-2)] p-1 rounded-lg">
+          <div class="tab-btn active" data-kw-rank="impressions">por Impressões</div>
+          <div class="tab-btn" data-kw-rank="clicks">por Cliques</div>
+          <div class="tab-btn" data-kw-rank="ctr">por CTR</div>
+          <div class="tab-btn" data-kw-rank="leads">por Conv.</div>
+          <div class="tab-btn" data-kw-rank="spend">por Invest.</div>
+        </div>
+      </div>
+      <div class="overflow-x-auto scroll-x">
+        <table class="w-full min-w-[920px]">
+          <thead>
+            <tr>
+              <th class="table-th w-10">#</th>
+              <th class="table-th">Palavra-chave</th>
+              <th class="table-th">Match</th>
+              <th class="table-th">Ad Group</th>
+              <th class="table-th text-right">Impressões</th>
+              <th class="table-th text-right">Cliques</th>
+              <th class="table-th text-right">CTR</th>
+              <th class="table-th text-right">CPC</th>
+              <th class="table-th text-right">Conv.</th>
+              <th class="table-th text-right">Invest.</th>
+            </tr>
+          </thead>
+          <tbody id="keywords-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Top creatives (Meta) -->
+    <section class="card p-6" id="creatives-section">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-[var(--meta)] font-semibold">Top Criativos (Meta Ads)</div>
           <div class="text-lg font-bold mt-0.5">Ranking de anúncios <span id="link-hint" class="hidden text-xs font-medium text-[var(--green)] ml-2">• clicáveis</span></div>
         </div>
         <div class="flex gap-1 bg-[var(--card-2)] p-1 rounded-lg">
@@ -364,7 +411,8 @@
     let currentPlatform = 'all'; // 'all' | 'meta' | 'google'
     let currentMetric = 'impressions';
     let currentRank = 'ctr';
-    let chartTime, chartCampaign, chartPlacement;
+    let currentKwRank = 'impressions';
+    let chartTime, chartCampaign, chartPlacement, chartMatchType;
 
     // ============ HELPERS ============
     const num = (v) => {
@@ -448,6 +496,8 @@
                 // Para SEARCH, Ad Name normalmente eh o nome do RSA. Se a planilha estiver vazia,
                 // cai pro Ad Group Name como fallback.
                 const adDisplay = rawAdName || adGroup || '—';
+                const keyword = (r['Keyword Info Text (Segment)'] || r['Keyword Text'] || '').trim();
+                const matchType = (r['Keyword Info Match Type (Segment)'] || r['Keyword Match Type'] || '').trim();
                 n = {
                   source: 'google',
                   date: r['Date (Segment)'] || r['Date'],
@@ -455,6 +505,8 @@
                   adset: adGroup,
                   ad: adDisplay,
                   adIsFallback: !rawAdName,
+                  keyword: keyword || null,
+                  matchType: matchType || null,
                   impressions: num(r['Impressions']),
                   cpm: num(r['Average CPM']),
                   clicks: num(r['Clicks']),
@@ -800,6 +852,128 @@
       });
     }
 
+    function renderMatchTypeChart() {
+      // Only Google has match types
+      const googleRows = filteredRows().filter(r => r.source === 'google' && r.matchType);
+      if (!googleRows.length) {
+        if (chartMatchType) { chartMatchType.destroy(); chartMatchType = null; }
+        document.getElementById('matchtype-legend').innerHTML = '';
+        return;
+      }
+      const grouped = groupBy(googleRows, 'matchType');
+      const labels = Object.keys(grouped);
+      const palette = { EXACT: COLORS.green, PHRASE: COLORS.amber, BROAD: COLORS.blue };
+      const fallback = [COLORS.purple, COLORS.cyan, COLORS.pink];
+
+      const data = labels.map(l => sum(grouped[l], 'impressions'));
+      const clicks = labels.map(l => sum(grouped[l], 'clicks'));
+      const leads = labels.map(l => sum(grouped[l], 'leads'));
+      const colors = labels.map((l, i) => palette[l] || fallback[i % fallback.length]);
+
+      const ctx = document.getElementById('chart-matchtype').getContext('2d');
+      if (chartMatchType) chartMatchType.destroy();
+      chartMatchType = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: colors,
+            borderColor: '#0A0A0A',
+            borderWidth: 3,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '68%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0A0A0A', borderColor: '#1F1F1F', borderWidth: 1,
+              titleColor: '#FFFFFF', bodyColor: '#9CA3AF', padding: 12,
+              callbacks: { label: (c) => '  ' + c.label + ': ' + fmt(c.parsed) + ' impr.' }
+            }
+          }
+        }
+      });
+
+      const total = data.reduce((a,b)=>a+b,0) || 1;
+      document.getElementById('matchtype-legend').innerHTML = labels.map((l,i) => {
+        const c = colors[i];
+        const ctrL = data[i]>0 ? (clicks[i]/data[i]*100) : 0;
+        return `
+          <div class="rounded-lg p-2.5 border" style="background: ${c}10; border-color: ${c}40;">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="w-2 h-2 rounded-full" style="background: ${c};"></span>
+              <span class="text-xs font-bold" style="color: ${c};">${l}</span>
+            </div>
+            <div class="text-[10px] text-[var(--text-dim)] uppercase tracking-wider">Share</div>
+            <div class="text-sm font-bold">${fmtPct(data[i]/total*100)}</div>
+            <div class="text-[10px] text-[var(--text-dim)] mt-1">${fmt(clicks[i])} cliques · ${fmtPct(ctrL)} CTR</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderKeywordsTable() {
+      const googleRows = filteredRows().filter(r => r.source === 'google' && r.keyword);
+      if (!googleRows.length) {
+        document.getElementById('keywords-tbody').innerHTML = `
+          <tr><td colspan="10" class="table-td text-center text-[var(--text-dim)] py-8">Sem keywords no período</td></tr>`;
+        return;
+      }
+      // Group by keyword + matchType + adset (keyword can repeat across match types)
+      const grouped = {};
+      googleRows.forEach(r => {
+        const k = `${r.keyword}::${r.matchType||'—'}::${r.adset||'—'}`;
+        if (!grouped[k]) grouped[k] = { keyword: r.keyword, matchType: r.matchType, adset: r.adset, rows: [] };
+        grouped[k].rows.push(r);
+      });
+      let kws = Object.values(grouped).map(g => ({
+        keyword: g.keyword, matchType: g.matchType, adset: g.adset, ...aggregate(g.rows),
+      }));
+      kws.sort((a,b) => (b[currentKwRank] || 0) - (a[currentKwRank] || 0));
+
+      const matchBadge = (m) => {
+        const map = { EXACT: COLORS.green, PHRASE: COLORS.amber, BROAD: COLORS.blue };
+        const c = map[m] || COLORS.grey;
+        return `<span class="platform-badge" style="background: ${c}1F; color: ${c};">${m || '—'}</span>`;
+      };
+
+      document.getElementById('keywords-tbody').innerHTML = kws.map((r,i) => `
+        <tr class="ad-row">
+          <td class="table-td text-[var(--text-dim)] font-semibold">${i+1}</td>
+          <td class="table-td font-semibold">${escapeHtml(r.keyword)}</td>
+          <td class="table-td">${matchBadge(r.matchType)}</td>
+          <td class="table-td text-[var(--text-dim)]">${escapeHtml(r.adset || '—')}</td>
+          <td class="table-td text-right font-semibold">${fmt(r.impressions)}</td>
+          <td class="table-td text-right">${fmt(r.clicks)}</td>
+          <td class="table-td text-right ${r.ctr > 1 ? 'text-[var(--green)] font-bold' : r.ctr > 0.5 ? 'font-semibold' : 'text-[var(--red)]'}">${fmtPct(r.ctr)}</td>
+          <td class="table-td text-right">${r.clicks>0 ? fmtBRL(r.spend/r.clicks) : '—'}</td>
+          <td class="table-td text-right ${r.leads>0 ? 'text-[var(--green)] font-bold' : ''}">${fmt(r.leads)}</td>
+          <td class="table-td text-right font-semibold">${fmtBRL(r.spend)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function applyPlatformVisibility() {
+      // Hide creatives section when google-only (Meta ads are the "creatives")
+      // Show keywords section when google data is in scope
+      const showMeta = currentPlatform === 'all' || currentPlatform === 'meta';
+      const showGoogle = currentPlatform === 'all' || currentPlatform === 'google';
+      const hasGoogleKeywords = allData.some(r => r.source === 'google' && r.keyword);
+      const hasMetaCreatives = allData.some(r => r.source === 'meta');
+
+      const creatives = document.getElementById('creatives-section');
+      const keywords = document.getElementById('keywords-section');
+      const placement = document.getElementById('placement-card');
+      const matchtype = document.getElementById('matchtype-card');
+
+      creatives.classList.toggle('hidden', !(showMeta && hasMetaCreatives));
+      keywords.classList.toggle('hidden',  !(showGoogle && hasGoogleKeywords));
+      placement.classList.toggle('hidden', !showMeta);
+      matchtype.classList.toggle('hidden', !(showGoogle && hasGoogleKeywords));
+    }
+
     function renderAdsetTable() {
       const rows = filteredRows();
       // Key by source+adset to keep platform separation
@@ -833,7 +1007,8 @@
     }
 
     function renderAdsTable() {
-      const rows = filteredRows();
+      // Meta-only — Google "Top Performers" estao na tabela de Keywords
+      const rows = filteredRows().filter(r => r.source === 'meta');
       // Group ads keyed by source+ad so the same ad-name across platforms stays separate
       const grouped = {};
       rows.forEach(r => {
@@ -998,14 +1173,17 @@
 
     // ============ MAIN ============
     function renderAll() {
+      applyPlatformVisibility();
       renderKPIs();
       renderPlatformCompare();
       renderFunnel();
       renderTimeChart();
       renderCampaignChart();
       renderPlacementChart();
+      renderMatchTypeChart();
       renderAdsetTable();
       renderAdsTable();
+      renderKeywordsTable();
       renderInsights();
       renderMeta();
     }
@@ -1050,6 +1228,14 @@
         btn.classList.add('active');
         currentRank = btn.dataset.rank;
         renderAdsTable();
+      });
+    });
+    document.querySelectorAll('[data-kw-rank]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-kw-rank]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentKwRank = btn.dataset.kwRank;
+        renderKeywordsTable();
       });
     });
     document.getElementById('refresh-btn').addEventListener('click', load);
