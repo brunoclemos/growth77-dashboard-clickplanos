@@ -510,8 +510,8 @@
       { source: 'meta',   gid: '609054384', label: 'Meta Ads',   color: '#4D8BFF' },
       { source: 'google', gid: '0',          label: 'Google Ads', color: '#FFB800' },
     ];
-    // Filtro: pro Google, manter apenas campanhas SEARCH (ignora DISPLAY, PMAX, VIDEO, etc)
-    const GOOGLE_CAMPAIGN_FILTER = /SEARCH/i;
+    // Filtro: pro Google, aceitar SEARCH + DISPLAY (ignora PMAX, VIDEO, etc se houver)
+    const GOOGLE_CAMPAIGN_FILTER = /SEARCH|DISPLAY/i;
     const csvUrl = (gid) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}&_=${Date.now()}`;
 
     Chart.defaults.color = '#9CA3AF';
