@@ -135,6 +135,58 @@
     .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 100; cursor: zoom-out; }
     .lightbox.active { display: flex; }
     .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+
+    /* ============ MOBILE RESPONSIVE ============ */
+    @media (max-width: 768px) {
+      .kpi-value { font-size: 22px; }
+      .kpi-label { font-size: 10px; }
+      .wordmark { font-size: 20px; }
+      .wordmark-sub { font-size: 8px; letter-spacing: .3em; }
+      h1 { font-size: 22px !important; line-height: 1.2; }
+      .card { border-radius: 12px; }
+      /* Top bar: compactar */
+      header .max-w-\[1480px\] { padding: 12px !important; }
+      /* Hero stats chips: menor */
+      .chip { font-size: 10px; padding: 2px 8px; }
+      /* Date pills: menor */
+      .date-pill { padding: 6px 12px; font-size: 12px; }
+      .date-input { padding: 6px 10px; font-size: 12px; }
+      /* Platform tabs: menor */
+      .platform-tab { padding: 6px 10px; font-size: 11px; }
+      .platform-tabs { padding: 3px; }
+      /* Tab btns */
+      .tab-btn { padding: 6px 10px; font-size: 11px; }
+      /* Reduzir paddings dos cards */
+      .card.p-6, section.card.p-6 { padding: 16px !important; }
+      /* Tabela: scroll fica obvio */
+      .scroll-x { padding-bottom: 6px; }
+      /* Thumbnails: menor */
+      .thumb, .thumb-placeholder { width: 40px; height: 40px; }
+      /* Inputs: largura total se sozinho */
+      #creative-search { width: 100% !important; }
+      /* Funnel bar: menor */
+      .funnel-bar { height: 32px; font-size: 12px; padding: 0 12px; }
+      /* Datas no header */
+      .date-input { min-width: 130px; }
+    }
+    @media (max-width: 480px) {
+      .kpi-value { font-size: 20px; }
+      h1 { font-size: 20px !important; }
+      .wordmark { font-size: 18px; }
+      .date-pill { padding: 5px 10px; font-size: 11px; }
+      /* Esconde labels secundarios em telinhas */
+      #platform-counter { display: none; }
+      .btn span { display: none; }
+      .btn { padding: 8px; }
+      /* Stack vertical em coisas */
+      header .flex.items-center.gap-3 .hidden.md\:flex { display: none !important; }
+    }
+    /* Permite tabela tornar-se mais compacta em mobile */
+    @media (max-width: 768px) {
+      table.min-w-\[820px\], table.min-w-\[920px\], table.min-w-\[1020px\] { min-width: 720px; }
+      .table-th, .table-td { padding: 8px 8px; font-size: 12px; }
+      .table-th { font-size: 10px; }
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -478,6 +530,7 @@
 
     let allData = [];           // normalized merged rows
     let budgetsData = [];        // [{campaign, budget, isTotal}]
+    let creativesManifest = {};  // { adName: filename.ext }
     let currentPlatform = 'all'; // 'all' | 'meta' | 'google'
     let currentMetric = 'impressions';
     let currentRank = 'ctr';
@@ -640,6 +693,30 @@
           error: (err) => reject(err),
         });
       });
+    }
+
+    // Load creatives manifest (maps Ad Name -> filename in /creatives/)
+    async function loadCreativesManifest() {
+      try {
+        const r = await fetch('creatives/manifest.json?_=' + Date.now());
+        if (!r.ok) return {};
+        const j = await r.json();
+        return j.ads || {};
+      } catch { return {}; }
+    }
+
+    // Resolve image path for an ad: planilha column > manifest > ad-name-with-extension fallback > null
+    function resolveAdImage(adName, planilhaImage) {
+      if (planilhaImage) return planilhaImage;
+      if (!adName) return null;
+      // Direct manifest hit
+      if (creativesManifest[adName]) return 'creatives/' + creativesManifest[adName];
+      // Case-insensitive
+      const ciKey = Object.keys(creativesManifest).find(k => k.toLowerCase() === adName.toLowerCase());
+      if (ciKey) return 'creatives/' + creativesManifest[ciKey];
+      // If Ad Name already has an image extension (e.g. "300x50.jpg"), try direct path
+      if (/\.(jpe?g|png|gif|webp|avif)$/i.test(adName)) return 'creatives/' + adName;
+      return null;
     }
 
     // Tries to load a Budgets tab. Accepts column names: Campaign / Campanha / Nome + Budget / Orcamento / Total / Valor
@@ -1158,7 +1235,9 @@
         if (!grouped[k].image && r.image) grouped[k].image = r.image;
       });
       let ads = Object.values(grouped).map(g => ({
-        source: g.source, name: g.name, link: g.link, image: g.image, isFallback: g.isFallback, ...aggregate(g.rows),
+        source: g.source, name: g.name, link: g.link,
+        image: resolveAdImage(g.name, g.image),
+        isFallback: g.isFallback, ...aggregate(g.rows),
       }));
 
       if (creativeSearch) {
@@ -1187,7 +1266,7 @@
           ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer" class="ad-link font-semibold" title="Abrir criativo">${escapeHtml(r.name || '—')} ${linkIcon}</a>${fallbackTag}`
           : `<span class="font-semibold">${escapeHtml(r.name || '—')}</span>${fallbackTag}`;
         const thumbHtml = r.image
-          ? `<img src="${escapeHtml(r.image)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(r.image)}')" />`
+          ? `<img src="${escapeHtml(r.image)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(r.image)}')" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot; title=&quot;Imagem nao encontrada&quot;>&#9646;</div>'" />`
           : `<div class="thumb-placeholder" title="Sem preview">▦</div>`;
         return `
           <tr class="ad-row">
@@ -1408,9 +1487,10 @@
     async function load() {
       try {
         document.getElementById('last-update-text').textContent = 'Carregando dados...';
-        const [data, budgets] = await Promise.all([loadAll(), loadBudgets()]);
+        const [data, budgets, manifest] = await Promise.all([loadAll(), loadBudgets(), loadCreativesManifest()]);
         allData = data;
         budgetsData = budgets;
+        creativesManifest = manifest;
         if (!allData.length) throw new Error('Nenhuma linha retornada das planilhas');
         syncDateInputs();
         renderAll();

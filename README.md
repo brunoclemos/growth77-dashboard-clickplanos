@@ -29,7 +29,24 @@ Os dados vêm direto da planilha do cliente. Qualquer alteração na planilha ap
 Chips no topo: **Hoje · Últimas 24h · 7 dias · 14 dias · 30 dias · 90 dias** + inputs **De/Até** pra range custom. Todo filtro reseta charts, KPIs, funil e tabelas.
 
 ## Preview de criativo
-Auto-detecta coluna de imagem na planilha (qualquer header com `image`/`imagem`/`thumb`/`preview`/`capa`/`foto`/`asset` ou valor com extensão `.jpg/.png/.gif/.webp`). Quando presente, thumbnails 48x48 aparecem ao lado do nome do criativo + click abre lightbox em fullscreen.
+Duas fontes possíveis (ordem de prioridade):
+1. **Coluna de imagem na planilha** — auto-detecta header com `image`/`imagem`/`thumb`/`preview`/`capa`/`foto`/`asset` ou valor com extensão `.jpg/.png/.gif/.webp`
+2. **Pasta `creatives/`** — arquivos locais no repo, mapeados via `creatives/manifest.json`
+
+### Estrutura do manifest
+```json
+{
+  "ads": {
+    "AD01_100OFF_AMIL": "AD01_100OFF_AMIL.jpg",
+    "AD09_UNIMED_CURITIBA": "AD09_UNIMED_CURITIBA.png",
+    "300x50.jpg": "300x50.jpg"
+  }
+}
+```
+
+Quando o `Ad Name` da planilha bate com uma chave do manifest, o arquivo correspondente aparece como thumbnail (48x48) + abre lightbox fullscreen no click.
+
+Funciona pra Meta e Google Display. Google Search não tem `Ad Name` populado (anúncios são texto/RSA), então sem matching.
 
 Investimento (R$) é calculado como `(Impressões / 1000) × CPM` para ambas as plataformas, já que o sheet não tem coluna de Spend explícita.
 

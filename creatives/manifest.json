@@ -1,0 +1,4 @@
+{
+  "_help": "Mapeia Ad Name (da planilha) -> arquivo nesta pasta. Adicione entradas no formato 'AD_NAME': 'filename.ext'. O Growth77 atualiza este arquivo quando o Bruno envia novas imagens.",
+  "ads": {}
+}
