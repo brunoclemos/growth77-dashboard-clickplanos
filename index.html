@@ -1040,8 +1040,12 @@
     }
 
     function renderPlatformCompare() {
-      const meta = aggregate(allData.filter(r => r.source === 'meta'));
-      const google = aggregate(allData.filter(r => r.source === 'google'));
+      const { start, end } = dateRange();
+      const dateFiltered = allData.filter(r =>
+        (!start || r.date >= start) && (!end || r.date <= end)
+      );
+      const meta = aggregate(dateFiltered.filter(r => r.source === 'meta'));
+      const google = aggregate(dateFiltered.filter(r => r.source === 'google'));
       const total = meta.spend + google.spend || 1;
 
       const statBlock = (label, value) => `
@@ -1786,8 +1790,12 @@
 
       // Meta vs Google effectiveness (only when 'all')
       if (currentPlatform === 'all') {
-        const meta = aggregate(allData.filter(r => r.source === 'meta'));
-        const google = aggregate(allData.filter(r => r.source === 'google'));
+        const { start, end } = dateRange();
+        const dateFiltered = allData.filter(r =>
+          (!start || r.date >= start) && (!end || r.date <= end)
+        );
+        const meta = aggregate(dateFiltered.filter(r => r.source === 'meta'));
+        const google = aggregate(dateFiltered.filter(r => r.source === 'google'));
         if (meta.spend && google.spend) {
           const metaCpl = meta.leads>0 ? meta.cpl : Infinity;
           const googleCpl = google.leads>0 ? google.cpl : Infinity;
