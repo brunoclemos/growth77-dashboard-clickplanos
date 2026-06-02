@@ -50,6 +50,14 @@
       box-shadow: 0 8px 24px rgba(0, 255, 107, 0.08);
     }
     .kpi-label { color: var(--text-dim); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+    .kpi-icon {
+      width: 34px; height: 34px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 9px;
+      background: var(--green-soft); color: var(--green);
+    }
+    .kpi-icon svg { width: 18px; height: 18px; }
+    .kpi-card:hover .kpi-icon { background: var(--green); color: #0A0A0A; }
     .kpi-value { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
     .kpi-sub { font-size: 12px; color: var(--text-dim-2); }
     .chip {
@@ -282,7 +290,7 @@
         <div>
           <div class="chip mb-3"><div class="pulse"></div>DADOS EM TEMPO REAL — META ADS + GOOGLE SEARCH</div>
           <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Dashboard de Aquisição <span class="gradient-text">ClickPlanos</span></h1>
-          <p class="text-[var(--text-dim)] mt-2 text-sm max-w-2xl">Performance consolidada das campanhas pagas — Meta Ads + Google Ads (Search). Funil completo de impressões a leads qualificados.</p>
+          <p class="text-[var(--text-dim)] mt-2 text-sm max-w-2xl">Performance consolidada das campanhas pagas — Meta Ads + Google Ads (Search). Funil completo de impressões a conversões.</p>
         </div>
         <div class="flex flex-wrap gap-2 text-xs">
           <span class="px-3 py-1.5 rounded-lg bg-[var(--card-2)] border border-[var(--border)] text-[var(--text-dim)]"><span class="text-[var(--text)] font-semibold" id="date-range">—</span> • período</span>
@@ -361,7 +369,7 @@
         <div class="flex items-center justify-between mb-5">
           <div>
             <div class="text-xs uppercase tracking-widest text-[var(--text-dim)] font-semibold">Funil de Aquisição</div>
-            <div class="text-lg font-bold mt-0.5">Impressão → Lead</div>
+            <div class="text-lg font-bold mt-0.5">Impressão → Conversão</div>
           </div>
         </div>
         <div id="funnel" class="space-y-3"></div>
@@ -378,7 +386,7 @@
           <div class="flex gap-1 bg-[var(--card-2)] p-1 rounded-lg">
             <div class="tab-btn active" data-metric="impressions">Impressões</div>
             <div class="tab-btn" data-metric="clicks">Cliques</div>
-            <div class="tab-btn" data-metric="leads">Leads</div>
+            <div class="tab-btn" data-metric="leads">Conversões</div>
             <div class="tab-btn" data-metric="spend">Investimento</div>
           </div>
         </div>
@@ -438,8 +446,8 @@
               <th class="table-th text-right">CPM</th>
               <th class="table-th text-right">Cliques</th>
               <th class="table-th text-right">CTR</th>
-              <th class="table-th text-right">Leads</th>
-              <th class="table-th text-right">CPL</th>
+              <th class="table-th text-right">Conversões</th>
+              <th class="table-th text-right">Custo/Conv.</th>
               <th class="table-th text-right">Invest.</th>
             </tr>
           </thead>
@@ -514,7 +522,7 @@
           <div class="tab-btn active" data-rank="ctr">por CTR</div>
           <div class="tab-btn" data-rank="impressions">por Impressões</div>
           <div class="tab-btn" data-rank="clicks">por Cliques</div>
-          <div class="tab-btn" data-rank="leads">por Leads</div>
+          <div class="tab-btn" data-rank="leads">por Conv.</div>
           <div class="tab-btn" data-rank="spend">por Invest.</div>
         </div>
       </div>
@@ -529,7 +537,7 @@
               <th class="table-th text-right">CPM</th>
               <th class="table-th text-right">Cliques</th>
               <th class="table-th text-right">CTR</th>
-              <th class="table-th text-right">Leads</th>
+              <th class="table-th text-right">Conversões</th>
               <th class="table-th text-right">Invest.</th>
             </tr>
           </thead>
@@ -1003,6 +1011,17 @@
     }
 
     // ============ RENDER ============
+    // Line-icon assets (Lucide-style, stroke = currentColor) — substituem os emojis
+    const ICONS = {
+      wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/><path d="M3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/><circle cx="17" cy="12" r="1"/></svg>',
+      eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+      click: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9l5 12 1.8-5.2L21 14Z"/><path d="M7.2 2.2 8 5.1"/><path d="m5.1 8-2.9-.8"/><path d="M14 4.1 12 6"/><path d="m6 12-1.9 2"/></svg>',
+      ctr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+      target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+      cost: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>',
+      trend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>',
+      cpm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg>',
+    };
     function renderKPIs() {
       const rows = filteredRows();
       const agg = aggregate(rows);
@@ -1018,20 +1037,20 @@
         : `CPM médio ${fmtBRL(agg.cpm)}`;
 
       const items = [
-        { label: 'Investimento Total', value: fmtBRL(agg.spend), sub: investSub, icon: '💰' },
-        { label: 'Impressões', value: fmtCompact(agg.impressions), sub: fmt(agg.impressions) + ' totais', icon: '👁' },
-        { label: 'Cliques', value: fmt(agg.clicks), sub: 'CPC ' + fmtBRL(agg.cpc), icon: '👆' },
-        { label: 'CTR Médio', value: fmtPct(agg.ctr), sub: 'engajamento dos criativos', icon: '⚡' },
-        { label: 'Leads', value: fmt(agg.leads), sub: currentPlatform==='google' ? 'conversões Google Search' : currentPlatform==='meta' ? 'CP01 (click_planos)' : 'CP01 + Google Search', icon: '🎯' },
-        { label: 'Custo por Lead', value: agg.leads > 0 ? fmtBRL(agg.cpl) : '—', sub: 'invest. / leads', icon: '💎' },
-        { label: 'Taxa de Conversão', value: agg.impressions > 0 ? fmtPct(agg.leads/agg.impressions*100) : '0%', sub: 'lead/impressão', icon: '📈' },
-        { label: 'CPM Médio', value: fmtBRL(agg.cpm), sub: 'custo por mil impressões', icon: '📊' },
+        { label: 'Investimento Total', value: fmtBRL(agg.spend), sub: investSub, icon: 'wallet' },
+        { label: 'Impressões', value: fmtCompact(agg.impressions), sub: fmt(agg.impressions) + ' totais', icon: 'eye' },
+        { label: 'Cliques', value: fmt(agg.clicks), sub: 'CPC ' + fmtBRL(agg.cpc), icon: 'click' },
+        { label: 'CTR Médio', value: fmtPct(agg.ctr), sub: 'engajamento dos criativos', icon: 'ctr' },
+        { label: 'Conversões', value: fmt(agg.leads), sub: currentPlatform==='google' ? 'conversões Google Search' : currentPlatform==='meta' ? 'CP01 (click_planos)' : 'CP01 + Google Search', icon: 'target' },
+        { label: 'Custo por Conversão', value: agg.leads > 0 ? fmtBRL(agg.cpl) : '—', sub: 'invest. / conversões', icon: 'cost' },
+        { label: 'Taxa de Conversão', value: agg.impressions > 0 ? fmtPct(agg.leads/agg.impressions*100) : '0%', sub: 'conversão/impressão', icon: 'trend' },
+        { label: 'CPM Médio', value: fmtBRL(agg.cpm), sub: 'custo por mil impressões', icon: 'cpm' },
       ];
       document.getElementById('kpi-grid').innerHTML = items.map(it => `
         <div class="kpi-card p-5">
           <div class="flex items-start justify-between">
             <div class="kpi-label">${it.label}</div>
-            <div class="text-base opacity-50">${it.icon}</div>
+            <div class="kpi-icon">${ICONS[it.icon] || ''}</div>
           </div>
           <div class="kpi-value mt-2">${it.value}</div>
           <div class="kpi-sub mt-1">${it.sub}</div>
@@ -1057,10 +1076,10 @@
       document.getElementById('meta-stats').innerHTML =
         statBlock('Investimento', fmtBRL(meta.spend)) +
         statBlock('Cliques', fmt(meta.clicks)) +
-        statBlock('Leads (CP01)', fmt(meta.leads)) +
+        statBlock('Conversões (CP01)', fmt(meta.leads)) +
         statBlock('CTR', fmtPct(meta.ctr)) +
         statBlock('CPM', fmtBRL(meta.cpm)) +
-        statBlock('CPL', meta.leads>0 ? fmtBRL(meta.cpl) : '—');
+        statBlock('Custo/Conv.', meta.leads>0 ? fmtBRL(meta.cpl) : '—');
 
       document.getElementById('google-stats').innerHTML =
         statBlock('Investimento', fmtBRL(google.spend)) +
@@ -1068,7 +1087,7 @@
         statBlock('Conversões', fmt(google.leads)) +
         statBlock('CTR', fmtPct(google.ctr)) +
         statBlock('CPM', fmtBRL(google.cpm)) +
-        statBlock('CPL', google.leads>0 ? fmtBRL(google.cpl) : '—');
+        statBlock('Custo/Conv.', google.leads>0 ? fmtBRL(google.cpl) : '—');
 
       document.getElementById('meta-share').textContent = fmtPct(meta.spend / total * 100) + ' do invest.';
       document.getElementById('google-share').textContent = fmtPct(google.spend / total * 100) + ' do invest.';
@@ -1084,7 +1103,7 @@
         { label: 'Cliques',            value: agg.clicks,      color: COLORS.green, pct: agg.impressions > 0 ? (agg.clicks/agg.impressions*100) : 0 },
       ];
       if (showLpv) stages.push({ label: 'Landing Page Views', value: agg.lpv, color: COLORS.amber, pct: agg.impressions > 0 ? (agg.lpv/agg.impressions*100) : 0 });
-      stages.push({ label: 'Leads', value: agg.leads, color: COLORS.red, pct: agg.impressions > 0 ? (agg.leads/agg.impressions*100) : 0 });
+      stages.push({ label: 'Conversões', value: agg.leads, color: COLORS.red, pct: agg.impressions > 0 ? (agg.leads/agg.impressions*100) : 0 });
 
       const max = Math.max(...stages.map(s => s.pct), 1);
       document.getElementById('funnel').innerHTML = stages.map((s) => {
@@ -1110,10 +1129,10 @@
       let rates = rateBlock('Impr → Click', agg.impressions>0 ? fmtPct(agg.clicks/agg.impressions*100) : '—');
       if (showLpv) {
         rates += rateBlock('Click → LPV', agg.clicks>0 ? fmtPct(agg.lpv/agg.clicks*100) : '—');
-        rates += rateBlock('LPV → Lead', agg.lpv>0 ? fmtPct(agg.leads/agg.lpv*100) : '—');
+        rates += rateBlock('LPV → Conv.', agg.lpv>0 ? fmtPct(agg.leads/agg.lpv*100) : '—');
       } else {
-        rates += rateBlock('Click → Lead', agg.clicks>0 ? fmtPct(agg.leads/agg.clicks*100) : '—');
-        rates += rateBlock('Custo / Lead', agg.leads>0 ? fmtBRL(agg.cpl) : '—');
+        rates += rateBlock('Click → Conv.', agg.clicks>0 ? fmtPct(agg.leads/agg.clicks*100) : '—');
+        rates += rateBlock('Custo / Conv.', agg.leads>0 ? fmtBRL(agg.cpl) : '—');
       }
       document.getElementById('funnel-rates').innerHTML = rates;
     }
@@ -1121,7 +1140,7 @@
     function renderTimeChart() {
       const rows = filteredRows();
       const dates = [...new Set(rows.map(r => r.date))].sort();
-      const metricLabels = { impressions: 'Impressões', clicks: 'Cliques', leads: 'Leads', spend: 'Investimento' };
+      const metricLabels = { impressions: 'Impressões', clicks: 'Cliques', leads: 'Conversões', spend: 'Investimento' };
       const fmtFn = currentMetric === 'spend' ? fmtBRL : fmt;
 
       const datasets = [];
@@ -1264,7 +1283,7 @@
       const datasets = [
         { label: 'Impressões', data: labels.map(l => sum(buckets[l], 'impressions')), color: COLORS.green },
         { label: 'Cliques',    data: labels.map(l => sum(buckets[l], 'clicks')),      color: COLORS.blue },
-        { label: 'Leads',      data: labels.map(l => sum(buckets[l], 'leads')),       color: COLORS.amber },
+        { label: 'Conversões', data: labels.map(l => sum(buckets[l], 'leads')),       color: COLORS.amber },
       ];
 
       const ctx = document.getElementById('chart-placement').getContext('2d');
@@ -1805,7 +1824,7 @@
             ins.push({
               type: 'positive',
               title: 'Plataforma mais eficiente',
-              body: `<strong>${winner}</strong> entrega o menor custo por lead${isFinite(wCpl)?` (<strong>${fmtBRL(wCpl)}</strong>)`:''}. Considere realocar verba.`
+              body: `<strong>${winner}</strong> entrega o menor custo por conversão${isFinite(wCpl)?` (<strong>${fmtBRL(wCpl)}</strong>)`:''}. Considere realocar verba.`
             });
           }
           ins.push({
@@ -1839,11 +1858,11 @@
         body: `<strong>${escapeHtml(worstCtr.name)}</strong> com apenas <strong>${fmtPct(worstCtr.ctr)}</strong> de CTR. <span class="text-[var(--red)]">Considere pausar ou refazer.</span>`
       });
 
-      // Leads warning
+      // Conversões warning
       if (agg.leads === 0 && agg.impressions > 0) ins.push({
         type: 'warning',
-        title: 'Sem leads no período',
-        body: `Nenhum lead rastreado. <span class="text-[var(--amber)]">Verifique tag GTM (Meta) ou pixel de conversão (Google).</span>`
+        title: 'Sem conversões no período',
+        body: `Nenhuma conversão rastreada. <span class="text-[var(--amber)]">Verifique tag GTM (Meta) ou pixel de conversão (Google).</span>`
       });
 
       // FEED vs STORIES (only meta or all)
