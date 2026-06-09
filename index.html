@@ -29,6 +29,8 @@
       --blue: #4D8BFF;
       --meta: #4D8BFF;
       --google: #FFB800;
+      --purple: #A855F7;
+      --cyan: #06B6D4;
     }
     * { font-family: 'Inter', system-ui, sans-serif; }
     body { background: var(--bg); color: var(--text); }
@@ -140,6 +142,21 @@
     .thumb-wrap { position: relative; display: inline-block; }
     .variant-count { position: absolute; top: -4px; right: -4px; background: var(--green); color: #000; font-size: 9px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 9999px; padding: 0 4px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg); pointer-events: none; }
     .thumb-loading { width: 48px; height: 48px; border-radius: 8px; background: linear-gradient(90deg, #161616 0%, #222 50%, #161616 100%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border: 1px solid var(--border); }
+    /* Resumo da Semana */
+    .ws-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 10px; background: var(--card-2); border: 1px solid var(--border); }
+    .ws-rank { flex: none; width: 20px; text-align: center; font-weight: 700; color: var(--text-dim); font-size: 13px; }
+    .ws-info { min-width: 0; flex: 1; }
+    .ws-name { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; overflow: hidden; }
+    .ws-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ws-metrics { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 3px; font-size: 11px; color: var(--text-dim); }
+    .ws-metrics b { color: var(--text); }
+    .ws-kw { background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+    .ws-kw-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .ws-kw-term { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ws-kw-val { flex: none; font-size: 11px; color: var(--text-dim); }
+    .ws-kw-val b { color: var(--text); }
+    .ws-kw-bar-track { margin-top: 6px; height: 5px; border-radius: 4px; background: rgba(255,255,255,.05); overflow: hidden; }
+    .ws-kw-bar { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--google), #ffd76b); }
     /* Creatives List (Veiculados) */
     .vlist { display: flex; flex-direction: column; gap: 6px; }
     .vrow {
@@ -309,9 +326,10 @@
       </div>
 
       <div class="flex items-center gap-2 flex-wrap" id="date-filter">
+        <button class="date-pill active" data-date="week">Semana (seg→dom)</button>
         <button class="date-pill" data-date="today">Hoje</button>
         <button class="date-pill" data-date="24h">Últimas 24h</button>
-        <button class="date-pill active" data-date="7d">7 dias</button>
+        <button class="date-pill" data-date="7d">7 dias</button>
         <button class="date-pill" data-date="14d">14 dias</button>
         <button class="date-pill" data-date="30d">30 dias</button>
         <button class="date-pill" data-date="90d">90 dias</button>
@@ -319,6 +337,26 @@
         <input type="date" id="date-start" class="date-input" />
         <span class="text-xs text-[var(--text-dim)]">Até</span>
         <input type="date" id="date-end" class="date-input" />
+      </div>
+    </section>
+
+    <!-- Resumo da Semana (destaque no topo — melhores peças + palavras mais buscadas) -->
+    <section class="card p-6" id="week-summary-section" data-hide-in-criativos="1" style="border-left: 3px solid var(--green);">
+      <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-[var(--green)] font-semibold">Resumo da Semana</div>
+          <div class="text-lg font-bold mt-0.5">Destaques do período <span class="text-xs font-medium text-[var(--text-dim)] ml-1" id="week-summary-range">—</span></div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--meta)] font-semibold mb-3">Melhores Peças</div>
+          <div id="week-best-ads" class="space-y-2"></div>
+        </div>
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--google)] font-semibold mb-3">Palavras Mais Buscadas</div>
+          <div id="week-top-keywords" class="space-y-2"></div>
+        </div>
       </div>
     </section>
 
@@ -360,6 +398,30 @@
           <div class="text-xs text-[var(--text-dim)]" id="google-share">—</div>
         </div>
         <div class="grid grid-cols-3 gap-3" id="google-stats"></div>
+      </div>
+    </section>
+
+    <!-- Comparativo por Praça: Brasília (BSB) vs Curitiba (CWB) -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-5 hidden" id="city-compare-section" data-hide-in-criativos="1">
+      <div class="card p-6" style="border-left: 3px solid var(--purple);">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="platform-dot" style="background: var(--purple);"></span>
+            <div class="text-xs uppercase tracking-widest font-semibold" style="color: var(--purple);">Brasília · BSB</div>
+          </div>
+          <div class="text-xs text-[var(--text-dim)]" id="bsb-share">—</div>
+        </div>
+        <div class="grid grid-cols-3 gap-3" id="bsb-stats"></div>
+      </div>
+      <div class="card p-6" style="border-left: 3px solid var(--cyan);">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="platform-dot" style="background: var(--cyan);"></span>
+            <div class="text-xs uppercase tracking-widest font-semibold" style="color: var(--cyan);">Curitiba · CWB</div>
+          </div>
+          <div class="text-xs text-[var(--text-dim)]" id="cwb-share">—</div>
+        </div>
+        <div class="grid grid-cols-3 gap-3" id="cwb-stats"></div>
       </div>
     </section>
 
@@ -652,7 +714,7 @@
     let currentMetric = 'impressions';
     let currentRank = 'ctr';
     let currentKwRank = 'impressions';
-    let currentDate = '7d';      // 'today' | '24h' | '7d' | '14d' | '30d' | '90d' | 'custom'
+    let currentDate = 'week';    // 'week' | 'today' | '24h' | '7d' | '14d' | '30d' | '90d' | 'custom'
     let customStart = null, customEnd = null;
     let creativeSearch = '';
     let chartTime, chartCampaign, chartPlacement, chartMatchType;
@@ -687,10 +749,21 @@
     const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
     const daysAgo = (n) => { const d = today(); d.setDate(d.getDate() - n); return d; };
 
+    // Última semana COMPLETA, de segunda a domingo (a "semana anterior travada")
+    function lastFullWeek() {
+      const d = today();
+      const dow = d.getDay();                       // 0=Dom ... 6=Sáb
+      const daysSinceSun = dow === 0 ? 7 : dow;     // volta até o último domingo encerrado
+      const end = new Date(d); end.setDate(d.getDate() - daysSinceSun);  // domingo
+      const start = new Date(end); start.setDate(end.getDate() - 6);     // segunda da mesma semana
+      return { start: toISODate(start), end: toISODate(end) };
+    }
+
     // Returns {start, end} ISO strings for the current preset, or null if 'custom' & inputs empty
     function dateRange() {
       const now = today();
       switch (currentDate) {
+        case 'week':   return lastFullWeek();
         case 'today':  return { start: toISODate(now),         end: toISODate(now) };
         case '24h':    return { start: toISODate(daysAgo(1)),  end: toISODate(now) };
         case '7d':     return { start: toISODate(daysAgo(6)),  end: toISODate(now) };
@@ -997,6 +1070,16 @@
       cpc: sum(rows, 'clicks') > 0 ? (sum(rows, 'spend') / sum(rows, 'clicks')) : 0,
     });
 
+    // Detecta a praça (cidade) pela nomenclatura no conjunto de anúncios / campanha.
+    // Curitiba = CWB, Brasília = BSB. Token isolado (não casa dentro de palavras maiores).
+    function cityOf(r) {
+      const hay = `${r.adset || ''} ${r.campaign || ''} ${r.ad || ''}`.toUpperCase();
+      const tokens = hay.split(/[^A-Z0-9]+/);
+      if (tokens.includes('BSB')) return 'bsb';
+      if (tokens.includes('CWB')) return 'cwb';
+      return null;
+    }
+
     // ============ FILTERED VIEW ============
     function filteredRows() {
       let rows = allData;
@@ -1091,6 +1174,130 @@
 
       document.getElementById('meta-share').textContent = fmtPct(meta.spend / total * 100) + ' do invest.';
       document.getElementById('google-share').textContent = fmtPct(google.spend / total * 100) + ' do invest.';
+    }
+
+    // Comparativo por praça: Brasília (BSB) vs Curitiba (CWB). Respeita plataforma + data.
+    function renderCityCompare() {
+      const section = document.getElementById('city-compare-section');
+      const rows = filteredRows();
+      const bsbRows = rows.filter(r => cityOf(r) === 'bsb');
+      const cwbRows = rows.filter(r => cityOf(r) === 'cwb');
+      if (!bsbRows.length && !cwbRows.length) { section.classList.add('hidden'); return; }
+      section.classList.remove('hidden');
+
+      const bsb = aggregate(bsbRows);
+      const cwb = aggregate(cwbRows);
+      const total = bsb.spend + cwb.spend || 1;
+
+      const statBlock = (label, value) => `
+        <div>
+          <div class="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-semibold">${label}</div>
+          <div class="text-lg font-bold mt-0.5">${value}</div>
+        </div>`;
+      const cardStats = (a) =>
+        statBlock('Investimento', fmtBRL(a.spend)) +
+        statBlock('Impressões', fmtCompact(a.impressions)) +
+        statBlock('Cliques', fmt(a.clicks)) +
+        statBlock('CTR', fmtPct(a.ctr)) +
+        statBlock('Conversões', fmt(a.leads)) +
+        statBlock('Custo/Conv.', a.leads > 0 ? fmtBRL(a.cpl) : '—');
+
+      document.getElementById('bsb-stats').innerHTML = cardStats(bsb);
+      document.getElementById('cwb-stats').innerHTML = cardStats(cwb);
+      document.getElementById('bsb-share').textContent = fmtPct(bsb.spend / total * 100) + ' do invest.';
+      document.getElementById('cwb-share').textContent = fmtPct(cwb.spend / total * 100) + ' do invest.';
+    }
+
+    // Resumo da Semana: melhores peças + palavras mais buscadas (segue o filtro; default = semana travada)
+    function renderWeekSummary() {
+      const { start, end } = dateRange();
+      const isWeek = currentDate === 'week';
+      document.getElementById('week-summary-range').textContent =
+        (start && end) ? `${fmtDate(start)} – ${fmtDate(end)}${isWeek ? ' · seg → dom' : ''}` : '';
+
+      const rows = filteredRows();
+
+      // --- Melhores Peças (ranqueia por conversões, desempata por CTR/cliques) ---
+      const grouped = {};
+      rows.forEach(r => {
+        const k = `${r.source}::${r.ad}`;
+        if (!grouped[k]) grouped[k] = { source: r.source, name: r.ad, image: null, link: null, rows: [] };
+        grouped[k].rows.push(r);
+        if (!grouped[k].image && r.image) grouped[k].image = r.image;
+        if (!grouped[k].link  && r.link)  grouped[k].link  = r.link;
+      });
+      let ads = Object.values(grouped)
+        .map(g => ({
+          source: g.source, name: g.name, link: g.link,
+          image: g.source === 'google' ? resolveAdImage(g.name, g.image) : g.image,
+          ...aggregate(g.rows),
+        }))
+        .filter(a => a.impressions >= 50);
+      ads.sort((a, b) => (b.leads - a.leads) || (b.ctr - a.ctr) || (b.clicks - a.clicks));
+      ads = ads.slice(0, 5);
+
+      const bestEl = document.getElementById('week-best-ads');
+      if (!ads.length) {
+        bestEl.innerHTML = `<div class="text-sm text-[var(--text-dim)] py-4">Sem peças com volume suficiente no período.</div>`;
+      } else {
+        bestEl.innerHTML = ads.map((a, i) => {
+          let thumb;
+          if (a.image) {
+            thumb = `<img src="${escapeHtml(a.image)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(a.image)}')" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot;>&#9646;</div>'" />`;
+          } else if (a.link) {
+            const cached = getCachedOg(a.link);
+            if (cached)            thumb = `<img src="${escapeHtml(cached)}" alt="" class="thumb" onclick="openLightbox('${escapeHtml(cached)}')" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot;>&#9646;</div>'" />`;
+            else if (cached === null) thumb = `<div class="thumb-placeholder">▦</div>`;
+            else                   thumb = `<div class="thumb-loading" data-og-url="${escapeHtml(a.link)}"></div>`;
+          } else {
+            thumb = `<div class="thumb-placeholder">▦</div>`;
+          }
+          const badge = `<span class="platform-badge ${a.source}">${a.source === 'meta' ? 'Meta' : 'Google'}</span>`;
+          return `
+            <div class="ws-row">
+              <div class="ws-rank">${i + 1}</div>
+              <div>${thumb}</div>
+              <div class="ws-info">
+                <div class="ws-name">${badge} <span>${escapeHtml(a.name || '—')}</span></div>
+                <div class="ws-metrics">
+                  <span><b>${fmt(a.leads)}</b> conv.</span>
+                  <span class="${a.ctr > 1 ? 'text-[var(--green)]' : ''}"><b>${fmtPct(a.ctr)}</b> CTR</span>
+                  <span>${fmtCompact(a.impressions)} impr.</span>
+                  <span><b>${fmtBRL(a.spend)}</b></span>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+        hydrateMetaPreviews();
+      }
+
+      // --- Palavras Mais Buscadas (Google Search keywords por impressões) ---
+      const kwEl = document.getElementById('week-top-keywords');
+      const kwRows = rows.filter(r => r.source === 'google' && r.keyword);
+      if (!kwRows.length) {
+        kwEl.innerHTML = `<div class="text-sm text-[var(--text-dim)] py-4">${currentPlatform === 'meta' ? 'Disponível apenas para Google Search.' : 'Sem buscas no período.'}</div>`;
+      } else {
+        const kg = {};
+        kwRows.forEach(r => {
+          if (!kg[r.keyword]) kg[r.keyword] = { keyword: r.keyword, rows: [] };
+          kg[r.keyword].rows.push(r);
+        });
+        let kws = Object.values(kg).map(g => ({ keyword: g.keyword, ...aggregate(g.rows) }));
+        kws.sort((a, b) => b.impressions - a.impressions);
+        const maxImp = Math.max(...kws.map(k => k.impressions), 1);
+        kws = kws.slice(0, 8);
+        kwEl.innerHTML = kws.map((k, i) => {
+          const w = Math.max(k.impressions / maxImp * 100, 4);
+          return `
+            <div class="ws-kw">
+              <div class="ws-kw-head">
+                <span class="ws-kw-term">${i + 1}. ${escapeHtml(k.keyword)}</span>
+                <span class="ws-kw-val"><b>${fmt(k.impressions)}</b> impr · ${fmt(k.clicks)} cliques · ${fmtPct(k.ctr)} CTR</span>
+              </div>
+              <div class="ws-kw-bar-track"><div class="ws-kw-bar" style="width:${w}%"></div></div>
+            </div>`;
+        }).join('');
+      }
     }
 
     function renderFunnel() {
@@ -1927,9 +2134,11 @@
     // ============ MAIN ============
     function renderAll() {
       applyPlatformVisibility();
+      renderWeekSummary();
       renderBudgets();
       renderKPIs();
       renderPlatformCompare();
+      renderCityCompare();
       renderFunnel();
       renderTimeChart();
       renderCampaignChart();
